@@ -77,11 +77,12 @@ Return JSON exactly in this shape:
     }
 
     // Persist
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "instagram_caption",
-      inputs: data as unknown as Record<string, unknown>,
-      output: parsed as unknown as Record<string, unknown>,
+      inputs: data as any,
+      output: parsed as any,
     });
 
     return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
