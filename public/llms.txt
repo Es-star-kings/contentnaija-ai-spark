@@ -1,0 +1,9 @@
+# ContentNaija AI
+
+> AI social media content generator built for Nigerian businesses — captions, WhatsApp campaigns, content calendars.
+
+ContentNaija AI helps Nigerian small businesses, social media managers and agencies create high-converting, culturally relevant marketing content in seconds.
+
+## Pages
+- [Home](/): Product overview, features, templates, pricing, FAQ.
+- [Sign in / Sign up](/auth): Create an account or sign in.
