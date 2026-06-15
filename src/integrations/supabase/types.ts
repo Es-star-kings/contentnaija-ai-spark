@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      generated_content: {
+        Row: {
+          created_at: string
+          favorited: boolean
+          generator_type: string
+          id: string
+          inputs: Json
+          output: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          favorited?: boolean
+          generator_type: string
+          id?: string
+          inputs?: Json
+          output?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          favorited?: boolean
+          generator_type?: string
+          id?: string
+          inputs?: Json
+          output?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          brand_color: string | null
+          business_name: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          industry: string | null
+          language: string | null
+          onboarding_complete: boolean
+          preferred_platform: string | null
+          target_audience: string | null
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          industry?: string | null
+          language?: string | null
+          onboarding_complete?: boolean
+          preferred_platform?: string | null
+          target_audience?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          language?: string | null
+          onboarding_complete?: boolean
+          preferred_platform?: string | null
+          target_audience?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
