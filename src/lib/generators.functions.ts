@@ -371,8 +371,8 @@ export const updateProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ProfileInput.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { ...data };
-    if (patch.brand_color && typeof patch.brand_color === "string" && !patch.brand_color.startsWith("#")) {
+    const patch = { ...data };
+    if (patch.brand_color && !patch.brand_color.startsWith("#")) {
       patch.brand_color = "#" + patch.brand_color;
     }
     const { error } = await context.supabase

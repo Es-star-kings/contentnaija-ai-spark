@@ -16,6 +16,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
+import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
+import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
+import { Route as AuthenticatedGenerateFlyerRouteImport } from './routes/_authenticated/generate.flyer'
+import { Route as AuthenticatedGenerateCalendarRouteImport } from './routes/_authenticated/generate.calendar'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -51,6 +56,36 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGenerateIndexRoute =
+  AuthenticatedGenerateIndexRouteImport.update({
+    id: '/generate/',
+    path: '/generate/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateWhatsappRoute =
+  AuthenticatedGenerateWhatsappRouteImport.update({
+    id: '/generate/whatsapp',
+    path: '/generate/whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateInstagramRoute =
+  AuthenticatedGenerateInstagramRouteImport.update({
+    id: '/generate/instagram',
+    path: '/generate/instagram',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateFlyerRoute =
+  AuthenticatedGenerateFlyerRouteImport.update({
+    id: '/generate/flyer',
+    path: '/generate/flyer',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateCalendarRoute =
+  AuthenticatedGenerateCalendarRouteImport.update({
+    id: '/generate/calendar',
+    path: '/generate/calendar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +94,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
+  '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
+  '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/generate/': typeof AuthenticatedGenerateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +107,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
+  '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
+  '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/generate': typeof AuthenticatedGenerateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,6 +122,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
+  '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
+  '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,8 +137,24 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/settings'
+    | '/generate/calendar'
+    | '/generate/flyer'
+    | '/generate/instagram'
+    | '/generate/whatsapp'
+    | '/generate/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/sitemap.xml' | '/dashboard' | '/history' | '/settings'
+  to:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/dashboard'
+    | '/history'
+    | '/settings'
+    | '/generate/calendar'
+    | '/generate/flyer'
+    | '/generate/instagram'
+    | '/generate/whatsapp'
+    | '/generate'
   id:
     | '__root__'
     | '/'
@@ -98,6 +164,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
     | '/_authenticated/settings'
+    | '/_authenticated/generate/calendar'
+    | '/_authenticated/generate/flyer'
+    | '/_authenticated/generate/instagram'
+    | '/_authenticated/generate/whatsapp'
+    | '/_authenticated/generate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +229,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/generate/': {
+      id: '/_authenticated/generate/'
+      path: '/generate'
+      fullPath: '/generate/'
+      preLoaderRoute: typeof AuthenticatedGenerateIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/whatsapp': {
+      id: '/_authenticated/generate/whatsapp'
+      path: '/generate/whatsapp'
+      fullPath: '/generate/whatsapp'
+      preLoaderRoute: typeof AuthenticatedGenerateWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/instagram': {
+      id: '/_authenticated/generate/instagram'
+      path: '/generate/instagram'
+      fullPath: '/generate/instagram'
+      preLoaderRoute: typeof AuthenticatedGenerateInstagramRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/flyer': {
+      id: '/_authenticated/generate/flyer'
+      path: '/generate/flyer'
+      fullPath: '/generate/flyer'
+      preLoaderRoute: typeof AuthenticatedGenerateFlyerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/calendar': {
+      id: '/_authenticated/generate/calendar'
+      path: '/generate/calendar'
+      fullPath: '/generate/calendar'
+      preLoaderRoute: typeof AuthenticatedGenerateCalendarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -165,12 +271,22 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
+  AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
+  AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
+  AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
+  AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
+  AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
+  AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
+  AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
+  AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
