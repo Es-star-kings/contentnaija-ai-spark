@@ -32,7 +32,7 @@ function Dashboard() {
         </div>
         <Link to="/generate">
           <Button className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Wand2 className="mr-2 h-4 w-4" /> New caption
+            <Wand2 className="mr-2 h-4 w-4" /> New content
           </Button>
         </Link>
       </div>
