@@ -37,13 +37,21 @@ function parseJSON<T>(raw: string): T {
   }
 }
 
-async function loadBrand(supabase: any, userId: string) {
-  const { data } = await supabase
+async function loadBrand(supabase: any, userId: string): Promise<{ data: any; brandId: string | null }> {
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("business_name, industry, tone, target_audience, brand_color")
+    .select("business_name, industry, tone, target_audience, brand_color, active_brand_id")
     .eq("id", userId)
     .maybeSingle();
-  return data ?? {};
+  if (profile?.active_brand_id) {
+    const { data: brand } = await supabase
+      .from("brands")
+      .select("id, business_name, industry, tone, target_audience, brand_color")
+      .eq("id", profile.active_brand_id)
+      .maybeSingle();
+    if (brand) return { data: brand, brandId: brand.id };
+  }
+  return { data: profile ?? {}, brandId: null };
 }
 
 function brandLine(brand: any) {
