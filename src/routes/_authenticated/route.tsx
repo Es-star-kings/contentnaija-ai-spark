@@ -79,7 +79,7 @@ function AuthedLayout() {
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="sticky bottom-0 grid grid-cols-4 border-t border-border bg-background md:hidden">
+        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-border bg-background md:hidden">
           {nav.map((n) => (
             <Link
               key={n.to}
