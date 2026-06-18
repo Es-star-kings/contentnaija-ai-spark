@@ -84,7 +84,7 @@ export const generateCaption = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
       data.length === "short" ? "1-2 short lines" : data.length === "medium" ? "3-5 lines" : "6-10 lines with rich storytelling";
@@ -110,6 +110,7 @@ Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "instagram_caption",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -137,7 +138,7 @@ export const generateWhatsApp = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Campaign goal: ${data.campaignGoal}
@@ -165,6 +166,7 @@ Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "whatsapp_campaign",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -195,7 +197,7 @@ export const generateFlyer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Event / Offer: ${data.eventOrOffer}
@@ -222,6 +224,7 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "flyer_copy",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -253,7 +256,7 @@ export const generateCalendar = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Goals: ${data.goals}
@@ -275,6 +278,7 @@ Return JSON exactly:
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "content_calendar",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
