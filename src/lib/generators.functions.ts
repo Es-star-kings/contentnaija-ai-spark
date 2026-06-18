@@ -37,13 +37,21 @@ function parseJSON<T>(raw: string): T {
   }
 }
 
-async function loadBrand(supabase: any, userId: string) {
-  const { data } = await supabase
+async function loadBrand(supabase: any, userId: string): Promise<{ data: any; brandId: string | null }> {
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("business_name, industry, tone, target_audience, brand_color")
+    .select("business_name, industry, tone, target_audience, brand_color, active_brand_id")
     .eq("id", userId)
     .maybeSingle();
-  return data ?? {};
+  if (profile?.active_brand_id) {
+    const { data: brand } = await supabase
+      .from("brands")
+      .select("id, business_name, industry, tone, target_audience, brand_color")
+      .eq("id", profile.active_brand_id)
+      .maybeSingle();
+    if (brand) return { data: brand, brandId: brand.id };
+  }
+  return { data: profile ?? {}, brandId: null };
 }
 
 function brandLine(brand: any) {
@@ -76,7 +84,7 @@ export const generateCaption = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
       data.length === "short" ? "1-2 short lines" : data.length === "medium" ? "3-5 lines" : "6-10 lines with rich storytelling";
@@ -102,6 +110,7 @@ Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "instagram_caption",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -129,7 +138,7 @@ export const generateWhatsApp = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Campaign goal: ${data.campaignGoal}
@@ -157,6 +166,7 @@ Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "whatsapp_campaign",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -187,7 +197,7 @@ export const generateFlyer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Event / Offer: ${data.eventOrOffer}
@@ -214,6 +224,7 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "flyer_copy",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -245,7 +256,7 @@ export const generateCalendar = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number }> => {
     const { supabase, userId } = context;
     const used = await assertWithinLimit(supabase, userId);
-    const brand = await loadBrand(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Goals: ${data.goals}
@@ -267,6 +278,7 @@ Return JSON exactly:
     await supabase.from("generated_content").insert({
       user_id: userId,
       generator_type: "content_calendar",
+      brand_id: brandId,
       inputs: data as any,
       output: parsed as any,
     });
@@ -457,5 +469,158 @@ export const updateProfile = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", context.userId);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- Brands (multi-brand) ----------
+
+export const listBrands = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("brands")
+      .select("id, name, business_name, industry, tone, target_audience, brand_color, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("active_brand_id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    return { brands: data ?? [], activeBrandId: profile?.active_brand_id ?? null };
+  });
+
+const BrandInput = z.object({
+  name: z.string().min(1).max(80),
+  business_name: z.string().max(120).optional().nullable(),
+  industry: z.string().max(120).optional().nullable(),
+  tone: z.string().max(60).optional().nullable(),
+  target_audience: z.string().max(200).optional().nullable(),
+  brand_color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional().nullable(),
+});
+
+export const createBrand = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BrandInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const patch: any = { ...data, user_id: context.userId };
+    if (patch.brand_color && !patch.brand_color.startsWith("#")) patch.brand_color = "#" + patch.brand_color;
+    const { data: row, error } = await context.supabase.from("brands").insert(patch).select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: row.id };
+  });
+
+const BrandUpdateInput = BrandInput.extend({ id: z.string().uuid() });
+export const updateBrand = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BrandUpdateInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { id, ...patch } = data as any;
+    if (patch.brand_color && !patch.brand_color.startsWith("#")) patch.brand_color = "#" + patch.brand_color;
+    const { error } = await context.supabase.from("brands").update(patch).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const BrandIdInput = z.object({ id: z.string().uuid() });
+export const deleteBrand = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BrandIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("brands").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const SetActiveInput = z.object({ id: z.string().uuid().nullable() });
+export const setActiveBrand = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SetActiveInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ active_brand_id: data.id })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- Admin ----------
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: admin only");
+}
+
+export const getMyRoles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    return { roles: (data ?? []).map((r: any) => r.role as string) };
+  });
+
+export const getAdminOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ count: totalContent }, { count: totalBrands }, recentRows, byTypeRows, users] = await Promise.all([
+      supabaseAdmin.from("generated_content").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("brands").select("id", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("generated_content")
+        .select("id, user_id, generator_type, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin.from("generated_content").select("generator_type"),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name, business_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    const byType: Record<string, number> = {};
+    for (const r of byTypeRows.data ?? []) {
+      byType[r.generator_type] = (byType[r.generator_type] ?? 0) + 1;
+    }
+
+    return {
+      totalContent: totalContent ?? 0,
+      totalBrands: totalBrands ?? 0,
+      totalUsers: users.data?.length ?? 0,
+      byType: Object.entries(byType).map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
+      recent: recentRows.data ?? [],
+      users: users.data ?? [],
+    };
+  });
+
+const GrantRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["admin", "user"]), grant: z.boolean() });
+export const setUserRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => GrantRoleInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.grant) {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: data.user_id, role: data.role })
+        .select("id");
+      if (error && !String(error.message).includes("duplicate")) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.user_id)
+        .eq("role", data.role);
+      if (error) throw new Error(error.message);
+    }
     return { ok: true };
   });
