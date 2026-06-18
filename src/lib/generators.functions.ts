@@ -292,6 +292,83 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     };
   });
 
+// ---------- Analytics ----------
+
+export const getAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 29);
+    since.setUTCHours(0, 0, 0, 0);
+
+    const { data: rows, error } = await supabase
+      .from("generated_content")
+      .select("id, generator_type, inputs, favorited, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (error) throw new Error(error.message);
+
+    const all = rows ?? [];
+
+    // Daily series for the last 30 days
+    const days: { date: string; label: string; count: number }[] = [];
+    const dayIndex = new Map<string, number>();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(since);
+      d.setUTCDate(since.getUTCDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      dayIndex.set(key, days.length);
+      days.push({ date: key, label, count: 0 });
+    }
+    const sinceMs = since.getTime();
+    let last30 = 0;
+    let monthCount = 0;
+    const monthStart = new Date(monthStartISO()).getTime();
+    const byType: Record<string, number> = {};
+    const toneCount: Record<string, number> = {};
+    let favorites = 0;
+
+    for (const r of all) {
+      const t = new Date(r.created_at).getTime();
+      if (t >= sinceMs) {
+        last30++;
+        const key = r.created_at.slice(0, 10);
+        const idx = dayIndex.get(key);
+        if (idx !== undefined) days[idx].count++;
+      }
+      if (t >= monthStart) monthCount++;
+      byType[r.generator_type] = (byType[r.generator_type] ?? 0) + 1;
+      if (r.favorited) favorites++;
+      const tone = (r.inputs as any)?.tone;
+      if (typeof tone === "string" && tone.trim()) {
+        const k = tone.trim();
+        toneCount[k] = (toneCount[k] ?? 0) + 1;
+      }
+    }
+
+    const generators = Object.entries(byType)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+    const topTones = Object.entries(toneCount)
+      .map(([tone, count]) => ({ tone, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      total: all.length,
+      last30,
+      monthCount,
+      monthlyLimit: FREE_MONTHLY_LIMIT,
+      favorites,
+      days,
+      generators,
+      topTones,
+    };
+  });
+
 const HistoryInput = z.object({
   type: z.string().optional(),
   favoritesOnly: z.boolean().optional(),

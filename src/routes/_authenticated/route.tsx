@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -18,6 +18,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/generate", label: "Generate", icon: Wand2 },
   { to: "/history", label: "History", icon: History },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
@@ -78,7 +79,7 @@ function AuthedLayout() {
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="sticky bottom-0 grid grid-cols-4 border-t border-border bg-background md:hidden">
+        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-border bg-background md:hidden">
           {nav.map((n) => (
             <Link
               key={n.to}
