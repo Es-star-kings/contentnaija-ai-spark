@@ -1,10 +1,12 @@
-import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyRoles, listBrands } from "@/lib/generators.functions";
+import { getMyRoles, listBrands, getProfile } from "@/lib/generators.functions";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -28,12 +30,21 @@ const baseNav = [
 function AuthedLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const roles = useServerFn(getMyRoles);
   const brands = useServerFn(listBrands);
+  const profile = useServerFn(getProfile);
   const rolesQ = useQuery({ queryKey: ["my-roles"], queryFn: () => roles() });
   const brandsQ = useQuery({ queryKey: ["brands"], queryFn: () => brands() });
+  const profileQ = useQuery({ queryKey: ["profile"], queryFn: () => profile() });
   const isAdmin = rolesQ.data?.roles.includes("admin");
   const activeBrand = brandsQ.data?.brands.find((b: any) => b.id === brandsQ.data?.activeBrandId);
+
+  useEffect(() => {
+    if (profileQ.data && (profileQ.data as any).onboarding_complete === false && pathname !== "/onboarding") {
+      navigate({ to: "/onboarding", replace: true });
+    }
+  }, [profileQ.data, pathname, navigate]);
 
   const nav = isAdmin
     ? [...baseNav, { to: "/admin", label: "Admin", icon: Shield } as const]
