@@ -438,12 +438,13 @@ export const getProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, email, full_name, business_name, industry, tone, target_audience, brand_color, preferred_platform, language")
+      .select("id, email, full_name, business_name, industry, tone, target_audience, brand_color, preferred_platform, language, onboarding_complete, active_brand_id")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   });
+
 
 const ProfileInput = z.object({
   full_name: z.string().max(120).optional().nullable(),
