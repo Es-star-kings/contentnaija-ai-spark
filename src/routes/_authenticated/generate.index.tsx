@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Instagram, MessageCircle, FileImage, CalendarDays, ArrowRight } from "lucide-react";
+import { Instagram, MessageCircle, FileImage, CalendarDays, ArrowRight, ImageIcon } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/generate/")({
   head: () => ({ meta: [{ title: "Generators — ContentNaija AI" }] }),
