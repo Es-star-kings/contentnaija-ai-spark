@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
 import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
 import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
+import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authenticated/generate.image'
 import { Route as AuthenticatedGenerateFlyerRouteImport } from './routes/_authenticated/generate.flyer'
 import { Route as AuthenticatedGenerateCalendarRouteImport } from './routes/_authenticated/generate.calendar'
 
@@ -98,6 +99,12 @@ const AuthenticatedGenerateInstagramRoute =
     path: '/generate/instagram',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGenerateImageRoute =
+  AuthenticatedGenerateImageRouteImport.update({
+    id: '/generate/image',
+    path: '/generate/image',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGenerateFlyerRoute =
   AuthenticatedGenerateFlyerRouteImport.update({
     id: '/generate/flyer',
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/generate/': typeof AuthenticatedGenerateIndexRoute
@@ -141,6 +149,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/generate': typeof AuthenticatedGenerateIndexRoute
@@ -160,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
+  '/_authenticated/generate/image': typeof AuthenticatedGenerateImageRoute
   '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/generate/calendar'
     | '/generate/flyer'
+    | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/generate/'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/generate/calendar'
     | '/generate/flyer'
+    | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/generate'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/generate/calendar'
     | '/_authenticated/generate/flyer'
+    | '/_authenticated/generate/image'
     | '/_authenticated/generate/instagram'
     | '/_authenticated/generate/whatsapp'
     | '/_authenticated/generate/'
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGenerateInstagramRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/generate/image': {
+      id: '/_authenticated/generate/image'
+      path: '/generate/image'
+      fullPath: '/generate/image'
+      preLoaderRoute: typeof AuthenticatedGenerateImageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/generate/flyer': {
       id: '/_authenticated/generate/flyer'
       path: '/generate/flyer'
@@ -353,6 +373,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
   AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
+  AuthenticatedGenerateImageRoute: typeof AuthenticatedGenerateImageRoute
   AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
   AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
   AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
@@ -368,6 +389,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
   AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
+  AuthenticatedGenerateImageRoute: AuthenticatedGenerateImageRoute,
   AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
   AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
   AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,

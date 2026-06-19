@@ -285,6 +285,106 @@ Return JSON exactly:
     return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
   });
 
+// ---------- Image generation ----------
+
+const ImageInput = z.object({
+  prompt: z.string().min(3).max(800),
+  style: z.string().max(60).optional().default("Vibrant marketing photo"),
+  purpose: z.enum(["flyer", "social", "product", "logo"]).default("social"),
+  aspect: z.enum(["1024x1024", "1024x1536", "1536x1024"]).default("1024x1024"),
+});
+
+export type ImageOutput = { url: string; path: string; prompt: string };
+
+export const generateImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ImageInput.parse(input))
+  .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number }> => {
+    const { supabase, userId } = context;
+    const used = await assertWithinLimit(supabase, userId);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+
+    const brandHint = brand?.business_name
+      ? `Brand: ${brand.business_name}. Industry: ${brand.industry || "general"}. Brand color hint: ${brand.brand_color || "#10B981"}.`
+      : "";
+    const purposeHint =
+      data.purpose === "flyer"
+        ? "Designed as a poster/flyer with strong focal subject and clean negative space for overlay text. No legible text in the image."
+        : data.purpose === "product"
+        ? "Clean product photography style, soft studio lighting, neutral background."
+        : data.purpose === "logo"
+        ? "Minimal flat icon-style mark, centered on a clean background, vector-like."
+        : "Eye-catching social media image, vivid colors, on-trend composition. No text overlays.";
+
+    const finalPrompt = `${data.prompt}\n\nStyle: ${data.style}. ${purposeHint} ${brandHint} Tailored for a Nigerian audience — authentic, culturally relevant.`;
+
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        "X-Lovable-AIG-SDK": "raw-fetch",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-image-2",
+        prompt: finalPrompt,
+        size: data.aspect,
+        quality: "low",
+        n: 1,
+      }),
+    });
+
+    if (!res.ok) {
+      if (res.status === 429) throw new Error("Rate limit reached. Please try again in a moment.");
+      if (res.status === 402) throw new Error("AI credits exhausted. Please add credits in your workspace.");
+      const text = await res.text();
+      throw new Error(`Image generation failed (${res.status}): ${text.slice(0, 200)}`);
+    }
+
+    const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
+    const b64 = json.data?.[0]?.b64_json;
+    if (!b64) throw new Error("AI returned no image data.");
+
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const filename = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+    const { error: upErr } = await supabase.storage
+      .from("generated-images")
+      .upload(filename, bytes, { contentType: "image/png", upsert: false });
+    if (upErr) throw new Error(`Storage upload failed: ${upErr.message}`);
+
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("generated-images")
+      .createSignedUrl(filename, 60 * 60 * 24 * 7);
+    if (signErr || !signed) throw new Error("Could not create signed URL.");
+
+    const output = { url: signed.signedUrl, path: filename, prompt: finalPrompt };
+
+    await supabase.from("generated_content").insert({
+      user_id: userId,
+      generator_type: "image",
+      brand_id: brandId,
+      inputs: data as any,
+      output: output as any,
+    });
+
+    return { ...output, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+  });
+
+const SignInput = z.object({ path: z.string().min(1) });
+export const signImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SignInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: signed, error } = await context.supabase.storage
+      .from("generated-images")
+      .createSignedUrl(data.path, 60 * 60 * 24 * 7);
+    if (error || !signed) throw new Error("Could not refresh image URL.");
+    return { url: signed.signedUrl };
+  });
+
 // ---------- Dashboard / history ----------
 
 export const getDashboardStats = createServerFn({ method: "GET" })
