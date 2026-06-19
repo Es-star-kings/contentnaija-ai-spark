@@ -625,3 +625,72 @@ export const setUserRole = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+// ---------- Onboarding ----------
+
+const OnboardingInput = z.object({
+  full_name: z.string().trim().min(1).max(120),
+  business_name: z.string().trim().min(1).max(120),
+  industry: z.string().trim().min(1).max(120),
+  target_audience: z.string().trim().min(1).max(200),
+  tone: z.string().trim().min(1).max(60),
+  brand_color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional().nullable(),
+  preferred_platform: z.string().max(60).optional().nullable(),
+  language: z.string().max(40).optional().nullable(),
+});
+
+export const completeOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => OnboardingInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const brand_color = data.brand_color
+      ? (data.brand_color.startsWith("#") ? data.brand_color : "#" + data.brand_color)
+      : "#10B981";
+
+    // 1. Create the first brand
+    const { data: brand, error: brandErr } = await context.supabase
+      .from("brands")
+      .insert({
+        user_id: context.userId,
+        name: data.business_name,
+        business_name: data.business_name,
+        industry: data.industry,
+        tone: data.tone,
+        target_audience: data.target_audience,
+        brand_color,
+      })
+      .select("id")
+      .single();
+    if (brandErr) throw new Error(brandErr.message);
+
+    // 2. Update the profile and mark onboarding complete
+    const { error: profErr } = await context.supabase
+      .from("profiles")
+      .update({
+        full_name: data.full_name,
+        business_name: data.business_name,
+        industry: data.industry,
+        tone: data.tone,
+        target_audience: data.target_audience,
+        brand_color,
+        preferred_platform: data.preferred_platform ?? null,
+        language: data.language ?? "English",
+        active_brand_id: brand.id,
+        onboarding_complete: true,
+      })
+      .eq("id", context.userId);
+    if (profErr) throw new Error(profErr.message);
+
+    return { ok: true, brandId: brand.id };
+  });
+
+export const skipOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ onboarding_complete: true })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
