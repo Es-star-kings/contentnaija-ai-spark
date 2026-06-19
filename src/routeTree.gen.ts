@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBrandsRouteImport } from './routes/_authenticated/brands'
@@ -47,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/brands': typeof AuthenticatedBrandsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/brands': typeof AuthenticatedBrandsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_authenticated/brands': typeof AuthenticatedBrandsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/brands'
     | '/dashboard'
     | '/history'
+    | '/onboarding'
     | '/settings'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/brands'
     | '/dashboard'
     | '/history'
+    | '/onboarding'
     | '/settings'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authenticated/brands'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
+    | '/_authenticated/onboarding'
     | '/_authenticated/settings'
     | '/_authenticated/generate/calendar'
     | '/_authenticated/generate/flyer'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/history': {
@@ -330,6 +349,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBrandsRoute: typeof AuthenticatedBrandsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
   AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
@@ -344,6 +364,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBrandsRoute: AuthenticatedBrandsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
   AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
