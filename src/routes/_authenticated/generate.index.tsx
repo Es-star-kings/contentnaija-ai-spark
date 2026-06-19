@@ -32,6 +32,12 @@ const tools = [
     desc: "Plan a full week of posts in under 60 seconds.",
     icon: CalendarDays,
   },
+  {
+    to: "/generate/image",
+    title: "AI Image",
+    desc: "Generate flyer, product and social images for your brand.",
+    icon: ImageIcon,
+  },
 ] as const;
 
 function GenerateHub() {
