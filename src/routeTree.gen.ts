@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -55,6 +56,11 @@ const STokenRoute = STokenRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/s/$token': typeof STokenRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/onboarding'
+    | '/schedule'
     | '/settings'
     | '/s/$token'
     | '/generate/calendar'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/onboarding'
+    | '/schedule'
     | '/settings'
     | '/s/$token'
     | '/generate/calendar'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
     | '/_authenticated/onboarding'
+    | '/_authenticated/schedule'
     | '/_authenticated/settings'
     | '/s/$token'
     | '/_authenticated/generate/calendar'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -390,6 +409,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
   AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
@@ -406,6 +426,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
   AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
