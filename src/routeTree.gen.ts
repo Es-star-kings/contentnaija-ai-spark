@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
@@ -44,6 +45,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
   '/generate/image': typeof AuthenticatedGenerateImageRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
   '/generate/image': typeof AuthenticatedGenerateImageRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/s/$token': typeof STokenRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
   '/_authenticated/generate/image': typeof AuthenticatedGenerateImageRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/onboarding'
     | '/settings'
+    | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
     | '/generate/image'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/onboarding'
     | '/settings'
+    | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
     | '/generate/image'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/onboarding'
     | '/_authenticated/settings'
+    | '/s/$token'
     | '/_authenticated/generate/calendar'
     | '/_authenticated/generate/flyer'
     | '/_authenticated/generate/image'
@@ -237,6 +249,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  STokenRoute: typeof STokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -403,6 +423,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  STokenRoute: STokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
