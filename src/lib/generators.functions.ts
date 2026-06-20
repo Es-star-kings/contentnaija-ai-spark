@@ -873,7 +873,7 @@ export const getSharedContent = createServerFn({ method: "POST" })
     );
     const { data: link, error } = await sb
       .from("share_links")
-      .select("id, content_id, expires_at, user_id")
+      .select("id, content_id, expires_at, user_id, view_count")
       .eq("token", data.token)
       .maybeSingle();
     if (error) throw new Error(error.message);
