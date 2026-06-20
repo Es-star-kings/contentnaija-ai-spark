@@ -126,17 +126,29 @@ function HistoryPage() {
                   <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm line-clamp-6">{text}</p>
-                <div className="mt-3 flex items-center justify-end gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => favMut.mutate({ id: r.id, favorited: !r.favorited })}>
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => favMut.mutate({ id: r.id, favorited: !r.favorited })} title="Favorite">
                     <Star className={`h-4 w-4 ${r.favorited ? "fill-primary text-primary" : ""}`} />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => copy(text, r.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => copy(text, r.id)} title="Copy">
                     {copiedId === r.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this generation?")) delMut.mutate(r.id); }}>
+                  <Button size="sm" variant="ghost" onClick={() => exportPDF({ title: LABELS[r.generator_type] ?? "Content", body: text })} title="Download PDF">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  {r.generator_type === "content_calendar" && (
+                    <Button size="sm" variant="ghost" onClick={() => exportCalendarICS((r.output as any)?.plan ?? [])} title="Export .ics">
+                      <CalIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => share(r.id)} title="Share link">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this generation?")) delMut.mutate(r.id); }} title="Delete">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
+
               </div>
             );
           })
