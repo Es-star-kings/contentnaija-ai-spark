@@ -62,6 +62,8 @@ export type Database = {
           id: string
           inputs: Json
           output: Json
+          scheduled_for: string | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -72,6 +74,8 @@ export type Database = {
           id?: string
           inputs?: Json
           output?: Json
+          scheduled_for?: string | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -82,6 +86,8 @@ export type Database = {
           id?: string
           inputs?: Json
           output?: Json
+          scheduled_for?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: [

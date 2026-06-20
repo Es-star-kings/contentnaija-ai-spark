@@ -5,9 +5,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listHistory, toggleFavorite, deleteHistoryItem, createShareLink } from "@/lib/generators.functions";
+import { listHistory, toggleFavorite, deleteHistoryItem, createShareLink, updateSchedule } from "@/lib/generators.functions";
 import { previewText, exportPDF, exportCalendarICS } from "@/lib/exporters";
-import { History as HistoryIcon, Star, Trash2, Copy, Search, Check, Download, Calendar as CalIcon, Share2 } from "lucide-react";
+import { History as HistoryIcon, Star, Trash2, Copy, Search, Check, Download, Calendar as CalIcon, Share2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -36,6 +36,7 @@ function HistoryPage() {
   const favFn = useServerFn(toggleFavorite);
   const delFn = useServerFn(deleteHistoryItem);
   const shareFn = useServerFn(createShareLink);
+  const scheduleFn = useServerFn(updateSchedule);
   const qc = useQueryClient();
 
 
@@ -81,9 +82,26 @@ function HistoryPage() {
     }
   }
 
+  async function schedule(id: string) {
+    const input = prompt("Schedule for (YYYY-MM-DD HH:MM, UTC):", new Date().toISOString().slice(0, 16).replace("T", " "));
+    if (!input) return;
+    const m = input.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+    if (!m) return toast.error("Use format YYYY-MM-DD HH:MM");
+    const iso = new Date(`${m[1]}T${m[2]}:00Z`).toISOString();
+    try {
+      await scheduleFn({ data: { id, scheduled_for: iso, status: "scheduled" } });
+      qc.invalidateQueries({ queryKey: ["history"] });
+      qc.invalidateQueries({ queryKey: ["schedule"] });
+      toast.success("Scheduled");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not schedule");
+    }
+  }
+
   function preview(row: { generator_type: string; output: any }): string {
     return previewText(row.generator_type, row.output ?? {});
   }
+
 
 
   return (
@@ -143,6 +161,9 @@ function HistoryPage() {
                   )}
                   <Button size="sm" variant="ghost" onClick={() => share(r.id)} title="Share link">
                     <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => schedule(r.id)} title="Schedule">
+                    <Clock className="h-4 w-4" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this generation?")) delMut.mutate(r.id); }} title="Delete">
                     <Trash2 className="h-4 w-4 text-destructive" />

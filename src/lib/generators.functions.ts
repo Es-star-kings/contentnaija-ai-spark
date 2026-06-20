@@ -907,3 +907,67 @@ export const getSharedContent = createServerFn({ method: "POST" })
     return { generator_type: content.generator_type, output: content.output, created_at: content.created_at, brand_name };
   });
 
+// ---------- Scheduling / drafts ----------
+
+const ScheduleRangeInput = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  includeDrafts: z.boolean().optional().default(true),
+});
+
+export const listScheduled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ScheduleRangeInput.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q: any = supabase
+      .from("generated_content")
+      .select("id, generator_type, output, inputs, created_at, scheduled_for, status, favorited")
+      .eq("user_id", userId)
+      .order("scheduled_for", { ascending: true, nullsFirst: false })
+      .limit(500);
+    if (data.from) q = q.gte("scheduled_for", data.from);
+    if (data.to) q = q.lte("scheduled_for", data.to);
+    if (!data.includeDrafts) q = q.not("scheduled_for", "is", null);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+const UpdateScheduleInput = z.object({
+  id: z.string().uuid(),
+  scheduled_for: z.string().nullable(),
+  status: z.enum(["draft", "scheduled", "published"]).optional(),
+});
+
+export const updateSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateScheduleInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const patch: any = { scheduled_for: data.scheduled_for };
+    patch.status = data.status ?? (data.scheduled_for ? "scheduled" : "draft");
+    const { error } = await context.supabase
+      .from("generated_content")
+      .update(patch)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const SetStatusInput = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["draft", "scheduled", "published"]),
+});
+
+export const setContentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SetStatusInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("generated_content")
+      .update({ status: data.status } as any)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
