@@ -794,3 +794,116 @@ export const skipOnboarding = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Share links ----------
+
+function randomToken(len = 24) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
+  for (const b of bytes) out += chars[b % chars.length];
+  return out;
+}
+
+const CreateShareInput = z.object({
+  contentId: z.string().uuid(),
+  expiresInDays: z.number().int().min(0).max(365).optional().default(0),
+});
+
+export const createShareLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CreateShareInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error: chk } = await supabase
+      .from("generated_content")
+      .select("id")
+      .eq("id", data.contentId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (chk) throw new Error(chk.message);
+    if (!row) throw new Error("Content not found");
+    const expires_at = data.expiresInDays && data.expiresInDays > 0
+      ? new Date(Date.now() + data.expiresInDays * 86400_000).toISOString()
+      : null;
+    const token = randomToken();
+    const { data: inserted, error } = await supabase
+      .from("share_links")
+      .insert({ user_id: userId, content_id: data.contentId, token, expires_at })
+      .select("token")
+      .single();
+    if (error) throw new Error(error.message);
+    return { token: inserted.token };
+  });
+
+const ListSharesInput = z.object({ contentId: z.string().uuid() });
+export const listShareLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ListSharesInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("share_links")
+      .select("id, token, expires_at, view_count, created_at")
+      .eq("content_id", data.contentId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+const RevokeShareInput = z.object({ id: z.string().uuid() });
+export const revokeShareLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RevokeShareInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("share_links").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const GetSharedInput = z.object({ token: z.string().min(8).max(64) });
+export const getSharedContent = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => GetSharedInput.parse(input))
+  .handler(async ({ data }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
+    );
+    const { data: link, error } = await sb
+      .from("share_links")
+      .select("id, content_id, expires_at, user_id")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!link) throw new Error("Link not found or expired");
+    if (link.expires_at && new Date(link.expires_at) < new Date()) throw new Error("Link expired");
+
+    // Use service role to read the linked content (RLS would otherwise block anon)
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: content, error: cerr } = await supabaseAdmin
+      .from("generated_content")
+      .select("generator_type, output, inputs, created_at")
+      .eq("id", link.content_id)
+      .maybeSingle();
+    if (cerr) throw new Error(cerr.message);
+    if (!content) throw new Error("Content unavailable");
+
+    // best-effort view count increment
+    await supabaseAdmin
+      .from("share_links")
+      .update({ view_count: (link as any).view_count != null ? (link as any).view_count + 1 : 1 })
+      .eq("id", link.id);
+
+    let brand_name: string | null = null;
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("business_name")
+      .eq("id", link.user_id)
+      .maybeSingle();
+    brand_name = prof?.business_name ?? null;
+
+    return { generator_type: content.generator_type, output: content.output, created_at: content.created_at, brand_name };
+  });
+
