@@ -5,9 +5,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listHistory, toggleFavorite, deleteHistoryItem } from "@/lib/generators.functions";
-import { History as HistoryIcon, Star, Trash2, Copy, Search, Check } from "lucide-react";
+import { listHistory, toggleFavorite, deleteHistoryItem, createShareLink } from "@/lib/generators.functions";
+import { previewText, exportPDF, exportCalendarICS } from "@/lib/exporters";
+import { History as HistoryIcon, Star, Trash2, Copy, Search, Check, Download, Calendar as CalIcon, Share2 } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({ meta: [{ title: "History — ContentNaija AI" }] }),
@@ -33,7 +35,9 @@ function HistoryPage() {
   const listFn = useServerFn(listHistory);
   const favFn = useServerFn(toggleFavorite);
   const delFn = useServerFn(deleteHistoryItem);
+  const shareFn = useServerFn(createShareLink);
   const qc = useQueryClient();
+
 
   const [type, setType] = useState<string>("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -66,14 +70,21 @@ function HistoryPage() {
     toast.success("Copied");
   }
 
-  function preview(row: { generator_type: string; output: any }): string {
-    const o = row.output;
-    if (row.generator_type === "instagram_caption") return o?.captions?.[0]?.text ?? "";
-    if (row.generator_type === "whatsapp_campaign") return o?.messages?.[0]?.body ?? "";
-    if (row.generator_type === "flyer_copy") return `${o?.headline ?? ""}\n${o?.subheadline ?? ""}\n${(o?.bullets ?? []).map((b: string) => `• ${b}`).join("\n")}\n${o?.cta ?? ""}`;
-    if (row.generator_type === "content_calendar") return (o?.plan ?? []).map((d: any) => `Day ${d.day} — ${d.theme}`).join("\n");
-    return "";
+  async function share(id: string) {
+    try {
+      const { token } = await shareFn({ data: { contentId: id, expiresInDays: 30 } });
+      const url = `${window.location.origin}/s/${token}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Share link copied", { description: url });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create share link");
+    }
   }
+
+  function preview(row: { generator_type: string; output: any }): string {
+    return previewText(row.generator_type, row.output ?? {});
+  }
+
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-8">
@@ -115,17 +126,29 @@ function HistoryPage() {
                   <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm line-clamp-6">{text}</p>
-                <div className="mt-3 flex items-center justify-end gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => favMut.mutate({ id: r.id, favorited: !r.favorited })}>
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => favMut.mutate({ id: r.id, favorited: !r.favorited })} title="Favorite">
                     <Star className={`h-4 w-4 ${r.favorited ? "fill-primary text-primary" : ""}`} />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => copy(text, r.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => copy(text, r.id)} title="Copy">
                     {copiedId === r.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this generation?")) delMut.mutate(r.id); }}>
+                  <Button size="sm" variant="ghost" onClick={() => exportPDF({ title: LABELS[r.generator_type] ?? "Content", body: text })} title="Download PDF">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  {r.generator_type === "content_calendar" && (
+                    <Button size="sm" variant="ghost" onClick={() => exportCalendarICS((r.output as any)?.plan ?? [])} title="Export .ics">
+                      <CalIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => share(r.id)} title="Share link">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this generation?")) delMut.mutate(r.id); }} title="Delete">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
+
               </div>
             );
           })

@@ -153,6 +153,44 @@ export type Database = {
           },
         ]
       }
+      share_links: {
+        Row: {
+          content_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          token: string
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          token: string
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          token?: string
+          user_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "generated_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
