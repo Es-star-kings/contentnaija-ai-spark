@@ -489,11 +489,13 @@ export const getAnalytics = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    const plan = planForClaims(context.claims);
     return {
       total: all.length,
       last30,
       monthCount,
-      monthlyLimit: FREE_MONTHLY_LIMIT,
+      monthlyLimit: plan.limit,
+      planName: plan.name,
       favorites,
       days,
       generators,
