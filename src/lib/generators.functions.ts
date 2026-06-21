@@ -101,7 +101,7 @@ export const generateCaption = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CaptionInput.parse(input))
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
@@ -132,7 +132,7 @@ Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- WhatsApp campaign ----------
@@ -155,7 +155,7 @@ export const generateWhatsApp = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
@@ -188,7 +188,7 @@ Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Flyer copy ----------
@@ -214,7 +214,7 @@ export const generateFlyer = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => FlyerInput.parse(input))
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
@@ -246,7 +246,7 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Content calendar ----------
@@ -273,7 +273,7 @@ export const generateCalendar = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CalendarInput.parse(input))
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
@@ -300,7 +300,7 @@ Return JSON exactly:
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Image generation ----------
@@ -319,7 +319,7 @@ export const generateImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ImageInput.parse(input))
   .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const brandHint = brand?.business_name
@@ -388,7 +388,7 @@ export const generateImage = createServerFn({ method: "POST" })
       output: output as any,
     });
 
-    return { ...output, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...output, remaining: remainingFrom(used, limit) };
   });
 
 const SignInput = z.object({ path: z.string().min(1) });
