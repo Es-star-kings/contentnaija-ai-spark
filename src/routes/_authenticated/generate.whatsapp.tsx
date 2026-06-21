@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/generate/whatsapp")({
   component: WhatsAppGen,
 });
 
-type Result = WhatsAppOutput & { remaining: number };
+type Result = WhatsAppOutput & { remaining: number | null };
 
 function WhatsAppGen() {
   const fn = useServerFn(generateWhatsApp);

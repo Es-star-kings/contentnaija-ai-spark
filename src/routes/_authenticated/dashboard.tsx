@@ -20,8 +20,10 @@ function Dashboard() {
   const router = useRouter();
 
   const monthly = data?.monthlyCount ?? 0;
-  const limit = data?.monthlyLimit ?? 20;
-  const pct = Math.min(100, (monthly / limit) * 100);
+  const limit = data?.monthlyLimit ?? null;
+  const planName = data?.planName ?? "Free";
+  const unlimited = limit === null;
+  const pct = unlimited ? 0 : Math.min(100, (monthly / (limit || 1)) * 100);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-8">
@@ -38,11 +40,11 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Sparkles} label="This month" value={isLoading ? "—" : `${monthly}/${limit}`} hint="Generations used">
-          <Progress value={pct} className="mt-3" />
+        <StatCard icon={Sparkles} label="This month" value={isLoading ? "—" : unlimited ? `${monthly} / ∞` : `${monthly}/${limit}`} hint="Generations used">
+          {!unlimited && <Progress value={pct} className="mt-3" />}
         </StatCard>
         <StatCard icon={FileText} label="Total content" value={isLoading ? "—" : String(data?.totalCount ?? 0)} hint="All-time pieces created" />
-        <StatCard icon={TrendingUp} label="Plan" value="Free" hint="20 generations / month" />
+        <StatCard icon={TrendingUp} label="Plan" value={planName} hint={unlimited ? "Unlimited generations" : `${limit} generations / month`} />
       </div>
 
       <section>

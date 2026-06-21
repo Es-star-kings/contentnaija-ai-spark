@@ -22,8 +22,9 @@ function AnalyticsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["analytics"], queryFn: () => fn() });
 
   const monthly = data?.monthCount ?? 0;
-  const limit = data?.monthlyLimit ?? 20;
-  const pct = Math.min(100, (monthly / limit) * 100);
+  const limit = data?.monthlyLimit ?? null;
+  const unlimited = limit === null;
+  const pct = unlimited ? 0 : Math.min(100, (monthly / (limit || 1)) * 100);
   const maxDay = Math.max(1, ...(data?.days ?? []).map((d) => d.count));
   const totalByType = (data?.generators ?? []).reduce((s, g) => s + g.count, 0) || 1;
 
@@ -35,8 +36,8 @@ function AnalyticsPage() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={Sparkles} label="This month" value={isLoading ? "—" : `${monthly}/${limit}`}>
-          <Progress value={pct} className="mt-3" />
+        <Stat icon={Sparkles} label="This month" value={isLoading ? "—" : unlimited ? `${monthly} / ∞` : `${monthly}/${limit}`}>
+          {!unlimited && <Progress value={pct} className="mt-3" />}
         </Stat>
         <Stat icon={TrendingUp} label="Last 30 days" value={isLoading ? "—" : String(data?.last30 ?? 0)} hint="Pieces generated" />
         <Stat icon={CalIcon} label="All-time" value={isLoading ? "—" : String(data?.total ?? 0)} hint="Total content" />

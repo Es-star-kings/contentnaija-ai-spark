@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/generate/calendar")({
   component: CalendarGen,
 });
 
-type Result = CalendarOutput & { remaining: number };
+type Result = CalendarOutput & { remaining: number | null };
 
 function CalendarGen() {
   const fn = useServerFn(generateCalendar);

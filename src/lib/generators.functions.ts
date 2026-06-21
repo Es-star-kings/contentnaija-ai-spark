@@ -5,6 +5,18 @@ import { chatCompletion } from "./ai-gateway.server";
 
 export const FREE_MONTHLY_LIMIT = 20;
 
+const UNLIMITED_EMAILS = new Set<string>([
+  "kingsleyadesina1@gmail.com",
+]);
+
+export function planForClaims(claims: any): { name: string; limit: number | null } {
+  const email = (claims?.email ?? "").toString().toLowerCase();
+  if (email && UNLIMITED_EMAILS.has(email)) {
+    return { name: "Agency", limit: null };
+  }
+  return { name: "Free", limit: FREE_MONTHLY_LIMIT };
+}
+
 // ---------- Shared helpers ----------
 
 function monthStartISO() {
@@ -14,17 +26,23 @@ function monthStartISO() {
   return d.toISOString();
 }
 
-async function assertWithinLimit(supabase: any, userId: string) {
+async function assertWithinLimit(supabase: any, userId: string, claims: any) {
+  const plan = planForClaims(claims);
   const { count } = await supabase
     .from("generated_content")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("created_at", monthStartISO());
   const used = count ?? 0;
-  if (used >= FREE_MONTHLY_LIMIT) {
-    throw new Error(`Free plan limit reached (${FREE_MONTHLY_LIMIT}/month). Upgrade to keep generating.`);
+  if (plan.limit !== null && used >= plan.limit) {
+    throw new Error(`${plan.name} plan limit reached (${plan.limit}/month). Upgrade to keep generating.`);
   }
-  return used;
+  return { used, limit: plan.limit, planName: plan.name };
+}
+
+function remainingFrom(used: number, limit: number | null): number | null {
+  if (limit === null) return null;
+  return Math.max(0, limit - used - 1);
 }
 
 function parseJSON<T>(raw: string): T {
@@ -81,9 +99,9 @@ export type CaptionOutput = { captions: Array<{ text: string; hashtags: string[]
 export const generateCaption = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CaptionInput.parse(input))
-  .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
@@ -114,7 +132,7 @@ Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- WhatsApp campaign ----------
@@ -135,9 +153,9 @@ export type WhatsAppOutput = {
 export const generateWhatsApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
-  .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
@@ -170,7 +188,7 @@ Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Flyer copy ----------
@@ -194,9 +212,9 @@ export type FlyerOutput = {
 export const generateFlyer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => FlyerInput.parse(input))
-  .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
@@ -228,7 +246,7 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Content calendar ----------
@@ -253,9 +271,9 @@ export type CalendarOutput = {
 export const generateCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CalendarInput.parse(input))
-  .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
@@ -282,7 +300,7 @@ Return JSON exactly:
       inputs: data as any,
       output: parsed as any,
     });
-    return { ...parsed, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...parsed, remaining: remainingFrom(used, limit) };
   });
 
 // ---------- Image generation ----------
@@ -299,9 +317,9 @@ export type ImageOutput = { url: string; path: string; prompt: string };
 export const generateImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ImageInput.parse(input))
-  .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const used = await assertWithinLimit(supabase, userId);
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const brandHint = brand?.business_name
@@ -370,7 +388,7 @@ export const generateImage = createServerFn({ method: "POST" })
       output: output as any,
     });
 
-    return { ...output, remaining: Math.max(0, FREE_MONTHLY_LIMIT - used - 1) };
+    return { ...output, remaining: remainingFrom(used, limit) };
   });
 
 const SignInput = z.object({ path: z.string().min(1) });
@@ -391,6 +409,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const plan = planForClaims(context.claims);
     const [{ count: monthlyCount }, { count: totalCount }, recent] = await Promise.all([
       supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStartISO()),
       supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -399,7 +418,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     return {
       monthlyCount: monthlyCount ?? 0,
       totalCount: totalCount ?? 0,
-      monthlyLimit: FREE_MONTHLY_LIMIT,
+      monthlyLimit: plan.limit,
+      planName: plan.name,
       recent: recent.data ?? [],
     };
   });
@@ -469,11 +489,13 @@ export const getAnalytics = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    const plan = planForClaims(context.claims);
     return {
       total: all.length,
       last30,
       monthCount,
-      monthlyLimit: FREE_MONTHLY_LIMIT,
+      monthlyLimit: plan.limit,
+      planName: plan.name,
       favorites,
       days,
       generators,

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/generate/flyer")({
   component: FlyerGen,
 });
 
-type Result = FlyerOutput & { remaining: number };
+type Result = FlyerOutput & { remaining: number | null };
 
 function FlyerGen() {
   const fn = useServerFn(generateFlyer);

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/generate/image")({
   component: ImageGen,
 });
 
-type Result = ImageOutput & { remaining: number };
+type Result = ImageOutput & { remaining: number | null };
 
 function ImageGen() {
   const fn = useServerFn(generateImage);
