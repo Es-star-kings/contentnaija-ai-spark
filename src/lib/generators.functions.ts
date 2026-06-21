@@ -5,6 +5,18 @@ import { chatCompletion } from "./ai-gateway.server";
 
 export const FREE_MONTHLY_LIMIT = 20;
 
+const UNLIMITED_EMAILS = new Set<string>([
+  "kingsleyadesina1@gmail.com",
+]);
+
+export function planForClaims(claims: any): { name: string; limit: number | null } {
+  const email = (claims?.email ?? "").toString().toLowerCase();
+  if (email && UNLIMITED_EMAILS.has(email)) {
+    return { name: "Agency", limit: null };
+  }
+  return { name: "Free", limit: FREE_MONTHLY_LIMIT };
+}
+
 // ---------- Shared helpers ----------
 
 function monthStartISO() {
@@ -14,17 +26,23 @@ function monthStartISO() {
   return d.toISOString();
 }
 
-async function assertWithinLimit(supabase: any, userId: string) {
+async function assertWithinLimit(supabase: any, userId: string, claims: any) {
+  const plan = planForClaims(claims);
   const { count } = await supabase
     .from("generated_content")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("created_at", monthStartISO());
   const used = count ?? 0;
-  if (used >= FREE_MONTHLY_LIMIT) {
-    throw new Error(`Free plan limit reached (${FREE_MONTHLY_LIMIT}/month). Upgrade to keep generating.`);
+  if (plan.limit !== null && used >= plan.limit) {
+    throw new Error(`${plan.name} plan limit reached (${plan.limit}/month). Upgrade to keep generating.`);
   }
-  return used;
+  return { used, limit: plan.limit, planName: plan.name };
+}
+
+function remainingFrom(used: number, limit: number | null): number | null {
+  if (limit === null) return null;
+  return Math.max(0, limit - used - 1);
 }
 
 function parseJSON<T>(raw: string): T {
