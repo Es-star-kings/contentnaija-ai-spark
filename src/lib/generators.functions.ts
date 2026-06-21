@@ -409,6 +409,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const plan = planForClaims(context.claims);
     const [{ count: monthlyCount }, { count: totalCount }, recent] = await Promise.all([
       supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStartISO()),
       supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -417,7 +418,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     return {
       monthlyCount: monthlyCount ?? 0,
       totalCount: totalCount ?? 0,
-      monthlyLimit: FREE_MONTHLY_LIMIT,
+      monthlyLimit: plan.limit,
+      planName: plan.name,
       recent: recent.data ?? [],
     };
   });
