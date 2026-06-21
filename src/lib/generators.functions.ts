@@ -99,7 +99,7 @@ export type CaptionOutput = { captions: Array<{ text: string; hashtags: string[]
 export const generateCaption = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CaptionInput.parse(input))
-  .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
     const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
@@ -153,7 +153,7 @@ export type WhatsAppOutput = {
 export const generateWhatsApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
-  .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
     const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
@@ -212,7 +212,7 @@ export type FlyerOutput = {
 export const generateFlyer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => FlyerInput.parse(input))
-  .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
     const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
@@ -271,7 +271,7 @@ export type CalendarOutput = {
 export const generateCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CalendarInput.parse(input))
-  .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
     const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
@@ -317,7 +317,7 @@ export type ImageOutput = { url: string; path: string; prompt: string };
 export const generateImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ImageInput.parse(input))
-  .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number }> => {
+  .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
     const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
     const { data: brand, brandId } = await loadBrand(supabase, userId);

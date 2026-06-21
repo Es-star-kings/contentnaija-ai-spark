@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/generate/instagram")({
   component: InstagramGen,
 });
 
-type Result = CaptionOutput & { remaining: number };
+type Result = CaptionOutput & { remaining: number | null };
 
 function InstagramGen() {
   const fn = useServerFn(generateCaption);
