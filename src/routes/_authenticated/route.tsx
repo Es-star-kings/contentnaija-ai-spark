@@ -117,16 +117,16 @@ function AuthedLayout() {
           <Outlet />
         </main>
 
-        <nav className="sticky bottom-0 grid grid-cols-6 border-t border-border bg-background md:hidden">
-          {nav.slice(0, 6).map((n) => (
+        <nav className="sticky bottom-0 grid grid-cols-7 border-t border-border bg-background md:hidden">
+          {nav.slice(0, 7).map((n) => (
             <Link
               key={n.to}
               to={n.to}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] text-muted-foreground"
+              className="flex flex-col items-center justify-center gap-1 px-1 py-2.5 text-[9px] text-muted-foreground"
               activeProps={{ className: "text-primary" }}
             >
-              <n.icon className="h-5 w-5" />
-              {n.label}
+              <n.icon className="h-4 w-4" />
+              <span className="truncate">{n.label}</span>
             </Link>
           ))}
         </nav>
