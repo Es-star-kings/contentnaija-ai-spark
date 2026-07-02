@@ -23,6 +23,7 @@ const baseNav = [
   { to: "/generate", label: "Generate", icon: Wand2 },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/brands", label: "Brands", icon: Building2 },
+  { to: "/team", label: "Team", icon: Users },
   { to: "/history", label: "History", icon: History },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
