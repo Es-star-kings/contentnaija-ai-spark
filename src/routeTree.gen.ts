@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -52,6 +53,11 @@ const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/s/$token': typeof STokenRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/schedule'
     | '/settings'
+    | '/team'
     | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/schedule'
     | '/settings'
+    | '/team'
     | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/schedule'
     | '/_authenticated/settings'
+    | '/_authenticated/team'
     | '/s/$token'
     | '/_authenticated/generate/calendar'
     | '/_authenticated/generate/flyer'
@@ -300,6 +312,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
@@ -411,6 +430,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
   AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
   AuthenticatedGenerateImageRoute: typeof AuthenticatedGenerateImageRoute
@@ -428,6 +448,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
   AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
   AuthenticatedGenerateImageRoute: AuthenticatedGenerateImageRoute,
