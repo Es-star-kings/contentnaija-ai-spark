@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/_authenticated/generate/calendar': typeof AuthenticatedGenerateCalendarRoute
   '/_authenticated/generate/flyer': typeof AuthenticatedGenerateFlyerRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/team'
+    | '/invite/$token'
     | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/team'
+    | '/invite/$token'
     | '/s/$token'
     | '/generate/calendar'
     | '/generate/flyer'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/_authenticated/schedule'
     | '/_authenticated/settings'
     | '/_authenticated/team'
+    | '/invite/$token'
     | '/s/$token'
     | '/_authenticated/generate/calendar'
     | '/_authenticated/generate/flyer'
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   STokenRoute: typeof STokenRoute
 }
 
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/team': {
@@ -465,6 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  InviteTokenRoute: InviteTokenRoute,
   STokenRoute: STokenRoute,
 }
 export const routeTree = rootRouteImport
