@@ -38,23 +38,25 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const pendingInvite = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite") : null;
+      const redirectPath = pendingInvite ? `/invite/${pendingInvite}` : "/dashboard";
       if (mode === "register") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}${redirectPath}`,
             data: { full_name: fullName },
           },
         });
         if (error) throw error;
         toast.success("Account created! Check your email to verify.");
-        navigate({ to: "/dashboard" });
+        navigate({ to: redirectPath });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate({ to: "/dashboard" });
+        navigate({ to: redirectPath });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -66,12 +68,14 @@ function AuthPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     try {
+      const pendingInvite = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite") : null;
+      const redirectPath = pendingInvite ? `/invite/${pendingInvite}` : "/dashboard";
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/dashboard",
+        redirect_uri: window.location.origin + redirectPath,
       });
       if (result.error) throw result.error;
       if (result.redirected) return;
-      navigate({ to: "/dashboard" });
+      navigate({ to: redirectPath });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setGoogleLoading(false);
