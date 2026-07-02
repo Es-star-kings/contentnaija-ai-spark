@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -23,6 +23,7 @@ const baseNav = [
   { to: "/generate", label: "Generate", icon: Wand2 },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/brands", label: "Brands", icon: Building2 },
+  { to: "/team", label: "Team", icon: Users },
   { to: "/history", label: "History", icon: History },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
@@ -117,8 +118,8 @@ function AuthedLayout() {
           <Outlet />
         </main>
 
-        <nav className="sticky bottom-0 grid grid-cols-7 border-t border-border bg-background md:hidden">
-          {nav.slice(0, 7).map((n) => (
+        <nav className="sticky bottom-0 grid grid-cols-8 border-t border-border bg-background md:hidden">
+          {nav.slice(0, 8).map((n) => (
             <Link
               key={n.to}
               to={n.to}

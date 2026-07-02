@@ -993,3 +993,205 @@ export const setContentStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+// ============================================================
+// Team / Agency Workspaces
+// ============================================================
+
+export const listWorkspaces = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: memberships, error } = await supabase
+      .from("workspace_members")
+      .select("role, workspace:workspaces(id, name, owner_id, created_at)")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    const { data: profile } = await supabase
+      .from("profiles").select("active_workspace_id").eq("id", userId).maybeSingle();
+    const workspaces = (memberships ?? []).map((m: any) => ({ ...m.workspace, role: m.role }));
+    return { workspaces, activeWorkspaceId: (profile as any)?.active_workspace_id ?? null };
+  });
+
+const CreateWorkspaceInput = z.object({ name: z.string().trim().min(1).max(80) });
+export const createWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CreateWorkspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: ws, error } = await supabase
+      .from("workspaces")
+      .insert({ name: data.name, owner_id: userId } as any)
+      .select("id, name")
+      .single();
+    if (error) throw new Error(error.message);
+    return ws;
+  });
+
+const RenameWorkspaceInput = z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(80) });
+export const renameWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RenameWorkspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("workspaces").update({ name: data.name } as any).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const DeleteWorkspaceInput = z.object({ id: z.string().uuid() });
+export const deleteWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => DeleteWorkspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("workspaces").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const SetActiveWorkspaceInput = z.object({ id: z.string().uuid().nullable() });
+export const setActiveWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SetActiveWorkspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ active_workspace_id: data.id } as any)
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const ListMembersInput = z.object({ workspace_id: z.string().uuid() });
+export const listWorkspaceMembers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ListMembersInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: members, error } = await supabase
+      .from("workspace_members")
+      .select("id, user_id, role, created_at")
+      .eq("workspace_id", data.workspace_id);
+    if (error) throw new Error(error.message);
+    const ids = (members ?? []).map((m: any) => m.user_id);
+    let profiles: any[] = [];
+    if (ids.length) {
+      const { data: p } = await supabase.from("profiles").select("id, email, full_name").in("id", ids);
+      profiles = p ?? [];
+    }
+    const withProfile = (members ?? []).map((m: any) => {
+      const p = profiles.find((x) => x.id === m.user_id);
+      return { ...m, email: p?.email ?? null, full_name: p?.full_name ?? null };
+    });
+    const { data: invites } = await supabase
+      .from("workspace_invitations")
+      .select("id, email, role, token, expires_at, accepted_at, created_at")
+      .eq("workspace_id", data.workspace_id)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString());
+    return { members: withProfile, invitations: invites ?? [] };
+  });
+
+const InviteInput = z.object({
+  workspace_id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.enum(["admin", "member"]).default("member"),
+});
+export const inviteToWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => InviteInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const { data: row, error } = await context.supabase
+      .from("workspace_invitations")
+      .insert({
+        workspace_id: data.workspace_id,
+        email: data.email.toLowerCase(),
+        role: data.role,
+        token,
+        invited_by: context.userId,
+      } as any)
+      .select("token")
+      .single();
+    if (error) throw new Error(error.message);
+    return { token: (row as any).token };
+  });
+
+const RevokeInput = z.object({ id: z.string().uuid() });
+export const revokeInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RevokeInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("workspace_invitations").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const UpdateMemberRoleInput = z.object({
+  id: z.string().uuid(),
+  role: z.enum(["admin", "member"]),
+});
+export const updateMemberRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateMemberRoleInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("workspace_members")
+      .update({ role: data.role } as any)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const RemoveMemberInput = z.object({ id: z.string().uuid() });
+export const removeMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RemoveMemberInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("workspace_members").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const GetInviteInput = z.object({ token: z.string().min(10) });
+export const getInvitation = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => GetInviteInput.parse(input))
+  .handler(async ({ data }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data: inv, error } = await sb
+      .from("workspace_invitations")
+      .select("id, workspace_id, email, role, expires_at, accepted_at, workspace:workspaces(name)")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) return { invitation: null };
+    return { invitation: inv };
+  });
+
+const AcceptInviteInput = z.object({ token: z.string().min(10) });
+export const acceptInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AcceptInviteInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: inv, error: e1 } = await supabase
+      .from("workspace_invitations")
+      .select("id, workspace_id, role, expires_at, accepted_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (e1) throw new Error(e1.message);
+    if (!inv) throw new Error("Invitation not found");
+    if ((inv as any).accepted_at) throw new Error("Invitation already accepted");
+    if (new Date((inv as any).expires_at) < new Date()) throw new Error("Invitation expired");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: e2 } = await supabaseAdmin
+      .from("workspace_members")
+      .upsert({ workspace_id: (inv as any).workspace_id, user_id: userId, role: (inv as any).role } as any, { onConflict: "workspace_id,user_id" });
+    if (e2) throw new Error(e2.message);
+    await supabaseAdmin.from("workspace_invitations").update({ accepted_at: new Date().toISOString() } as any).eq("id", (inv as any).id);
+    await supabase.from("profiles").update({ active_workspace_id: (inv as any).workspace_id } as any).eq("id", userId);
+    return { workspace_id: (inv as any).workspace_id };
+  });
