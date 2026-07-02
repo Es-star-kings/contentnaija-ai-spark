@@ -118,8 +118,8 @@ function AuthedLayout() {
           <Outlet />
         </main>
 
-        <nav className="sticky bottom-0 grid grid-cols-7 border-t border-border bg-background md:hidden">
-          {nav.slice(0, 7).map((n) => (
+        <nav className="sticky bottom-0 grid grid-cols-8 border-t border-border bg-background md:hidden">
+          {nav.slice(0, 8).map((n) => (
             <Link
               key={n.to}
               to={n.to}
