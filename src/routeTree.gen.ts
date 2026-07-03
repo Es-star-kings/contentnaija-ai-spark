@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates.$slug'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ForIndustryRouteImport } from './routes/for.$industry'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -107,6 +108,11 @@ const STokenRoute = STokenRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForIndustryRoute = ForIndustryRouteImport.update({
+  id: '/for/$industry',
+  path: '/for/$industry',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/templates/$slug': typeof TemplatesSlugRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/templates/$slug': typeof TemplatesSlugRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
   '/s/$token': typeof STokenRoute
   '/templates/$slug': typeof TemplatesSlugRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/blog/$slug'
+    | '/for/$industry'
     | '/invite/$token'
     | '/s/$token'
     | '/templates/$slug'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/blog/$slug'
+    | '/for/$industry'
     | '/invite/$token'
     | '/s/$token'
     | '/templates/$slug'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/team'
     | '/blog/$slug'
+    | '/for/$industry'
     | '/invite/$token'
     | '/s/$token'
     | '/templates/$slug'
@@ -400,6 +412,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemplatesRoute: typeof TemplatesRouteWithChildren
+  ForIndustryRoute: typeof ForIndustryRoute
   InviteTokenRoute: typeof InviteTokenRoute
   STokenRoute: typeof STokenRoute
 }
@@ -502,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/$industry': {
+      id: '/for/$industry'
+      path: '/for/$industry'
+      fullPath: '/for/$industry'
+      preLoaderRoute: typeof ForIndustryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/$slug': {
@@ -692,6 +712,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemplatesRoute: TemplatesRouteWithChildren,
+  ForIndustryRoute: ForIndustryRoute,
   InviteTokenRoute: InviteTokenRoute,
   STokenRoute: STokenRoute,
 }

@@ -6,11 +6,11 @@ import { useState } from "react";
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const links = [
-    { label: "Features", href: "#features" },
-    { label: "Templates", href: "#templates" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Templates", to: "/templates" as const },
+    { label: "Pricing", to: "/pricing" as const },
+    { label: "Blog", to: "/blog" as const },
+    { label: "About", to: "/about" as const },
+    { label: "Contact", to: "/contact" as const },
   ];
 
   return (
