@@ -344,6 +344,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_workspace_invitation: { Args: { _token: string }; Returns: string }
+      create_workspace_with_owner: {
+        Args: { _name: string }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "workspaces"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
