@@ -144,7 +144,12 @@ function AuthPage() {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1.5" placeholder="you@business.ng" />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {mode === "login" && (
+                  <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">Forgot?</Link>
+                )}
+              </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="mt-1.5" placeholder="••••••••" />
             </div>
             <Button type="submit" className="h-11 w-full bg-gradient-primary text-primary-foreground" disabled={loading}>
