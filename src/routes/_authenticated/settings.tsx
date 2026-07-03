@@ -162,6 +162,80 @@ function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      <AccountSecuritySection currentEmail={profile?.email ?? ""} />
+    </div>
+  );
+}
+
+function AccountSecuritySection({ currentEmail }: { currentEmail: string }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+
+  async function changeEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newEmail.trim()) return;
+    setEmailBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
+      if (error) throw error;
+      toast.success("Confirmation sent — check both inboxes to complete the change");
+      setNewEmail("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update email");
+    } finally { setEmailBusy(false); }
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
+    if (newPassword !== confirmPassword) return toast.error("Passwords don't match");
+    setPwBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Password updated");
+      setNewPassword(""); setConfirmPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update password");
+    } finally { setPwBusy(false); }
+  }
+
+  return (
+    <div className="mt-8 space-y-6">
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-semibold">Account security</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">Update the email and password on your account.</p>
+
+        <form onSubmit={changeEmail} className="mt-6 space-y-3">
+          <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Change email</Label>
+          <p className="text-xs text-muted-foreground">Current: <span className="font-medium text-foreground">{currentEmail}</span></p>
+          <div className="flex flex-wrap gap-2">
+            <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@business.ng" className="max-w-xs" />
+            <Button type="submit" variant="outline" disabled={emailBusy || !newEmail.trim()}>
+              {emailBusy && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />} Send confirmation
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">You'll get confirmation emails at both the old and new addresses.</p>
+        </form>
+
+        <form onSubmit={changePassword} className="mt-8 space-y-3">
+          <Label className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5" /> Change password</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" minLength={6} />
+            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password" minLength={6} />
+          </div>
+          <Button type="submit" variant="outline" disabled={pwBusy || !newPassword}>
+            {pwBusy && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />} Update password
+          </Button>
+        </form>
+      </section>
     </div>
   );
 }
