@@ -70,7 +70,7 @@ function TemplateDetail() {
 
             <h2 className="mt-10 text-xl font-semibold">Example output</h2>
             <div className="mt-4 space-y-3">
-              {t.examples.map((ex, i) => (
+              {t.examples.map((ex: string, i: number) => (
                 <blockquote key={i} className="rounded-xl border border-border bg-card p-4 text-sm italic">
                   "{ex}"
                 </blockquote>
