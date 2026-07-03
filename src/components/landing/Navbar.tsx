@@ -45,7 +45,7 @@ export function Navbar() {
         <div className="border-t border-border bg-background md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4">
             {links.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{l.label}</a>
+              <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{l.label}</Link>
             ))}
             <Link to="/auth" onClick={() => setOpen(false)}><Button variant="outline" className="w-full">Login</Button></Link>
             <Link to="/auth" search={{ mode: "register" }} onClick={() => setOpen(false)}>
