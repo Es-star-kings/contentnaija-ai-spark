@@ -1172,22 +1172,8 @@ export const acceptInvitation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AcceptInviteInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: inv, error: e1 } = await supabase
-      .from("workspace_invitations")
-      .select("id, workspace_id, role, expires_at, accepted_at")
-      .eq("token", data.token)
-      .maybeSingle();
-    if (e1) throw new Error(e1.message);
-    if (!inv) throw new Error("Invitation not found");
-    if ((inv as any).accepted_at) throw new Error("Invitation already accepted");
-    if (new Date((inv as any).expires_at) < new Date()) throw new Error("Invitation expired");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: e2 } = await supabaseAdmin
-      .from("workspace_members")
-      .upsert({ workspace_id: (inv as any).workspace_id, user_id: userId, role: (inv as any).role } as any, { onConflict: "workspace_id,user_id" });
-    if (e2) throw new Error(e2.message);
-    await supabaseAdmin.from("workspace_invitations").update({ accepted_at: new Date().toISOString() } as any).eq("id", (inv as any).id);
-    await supabase.from("profiles").update({ active_workspace_id: (inv as any).workspace_id } as any).eq("id", userId);
-    return { workspace_id: (inv as any).workspace_id };
+    const { data: wsId, error } = await supabase.rpc("accept_workspace_invitation" as any, { _token: data.token });
+    if (error) throw new Error(error.message);
+    await supabase.from("profiles").update({ active_workspace_id: wsId } as any).eq("id", userId);
+    return { workspace_id: wsId };
   });
