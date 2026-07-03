@@ -1018,14 +1018,10 @@ export const createWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CreateWorkspaceInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: ws, error } = await supabase
-      .from("workspaces")
-      .insert({ name: data.name, owner_id: userId } as any)
-      .select("id, name")
-      .single();
+    const { supabase } = context;
+    const { data: ws, error } = await supabase.rpc("create_workspace_with_owner" as any, { _name: data.name });
     if (error) throw new Error(error.message);
-    return ws;
+    return ws as any;
   });
 
 const RenameWorkspaceInput = z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(80) });
