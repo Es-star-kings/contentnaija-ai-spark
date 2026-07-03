@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -38,6 +39,11 @@ import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authen
 import { Route as AuthenticatedGenerateFlyerRouteImport } from './routes/_authenticated/generate.flyer'
 import { Route as AuthenticatedGenerateCalendarRouteImport } from './routes/_authenticated/generate.calendar'
 
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/templates': typeof TemplatesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/brands': typeof AuthenticatedBrandsRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/templates': typeof TemplatesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/brands': typeof AuthenticatedBrandsRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/templates': typeof TemplatesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/brands': typeof AuthenticatedBrandsRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/templates'
     | '/admin'
     | '/analytics'
     | '/brands'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/templates'
     | '/admin'
     | '/analytics'
     | '/brands'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/templates'
     | '/_authenticated/admin'
     | '/_authenticated/analytics'
     | '/_authenticated/brands'
@@ -375,12 +387,20 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TemplatesRoute: typeof TemplatesRoute
   InviteTokenRoute: typeof InviteTokenRoute
   STokenRoute: typeof STokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -640,6 +660,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TemplatesRoute: TemplatesRoute,
   InviteTokenRoute: InviteTokenRoute,
   STokenRoute: STokenRoute,
 }
