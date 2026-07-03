@@ -6,11 +6,11 @@ import { useState } from "react";
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const links = [
-    { label: "Features", href: "#features" },
-    { label: "Templates", href: "#templates" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Templates", to: "/templates" as const },
+    { label: "Pricing", to: "/pricing" as const },
+    { label: "Blog", to: "/blog" as const },
+    { label: "About", to: "/about" as const },
+    { label: "Contact", to: "/contact" as const },
   ];
 
   return (
@@ -25,7 +25,7 @@ export function Navbar() {
 
         <nav className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">{l.label}</a>
+            <Link key={l.to} to={l.to} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">{l.label}</Link>
           ))}
         </nav>
 
@@ -45,7 +45,7 @@ export function Navbar() {
         <div className="border-t border-border bg-background md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4">
             {links.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{l.label}</a>
+              <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{l.label}</Link>
             ))}
             <Link to="/auth" onClick={() => setOpen(false)}><Button variant="outline" className="w-full">Login</Button></Link>
             <Link to="/auth" search={{ mode: "register" }} onClick={() => setOpen(false)}>
