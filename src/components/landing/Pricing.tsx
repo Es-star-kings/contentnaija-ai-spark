@@ -1,25 +1,41 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const plans = [
-  { name: "Free", price: "₦0", period: "forever", features: ["20 generations / month", "Instagram captions", "Basic templates", "Community support"], cta: "Start Free", highlight: false },
-  { name: "Creator", price: "₦5,000", period: "/month", features: ["Unlimited captions", "Content calendar", "WhatsApp campaigns", "Email support"], cta: "Choose Creator", highlight: true },
-  { name: "Business", price: "₦15,000", period: "/month", features: ["Everything in Creator", "Branded templates", "Analytics dashboard", "Priority support"], cta: "Choose Business", highlight: false },
-  { name: "Agency", price: "₦40,000", period: "/month", features: ["Multi-brand workspaces", "Team accounts", "Content approval", "Dedicated manager"], cta: "Choose Agency", highlight: false },
+  {
+    name: "Free", price: "₦0", period: "forever",
+    tag: "For testing the waters",
+    features: ["20 generations / month", "Instagram captions & WhatsApp broadcasts", "1 brand kit", "History & basic exports"],
+    cta: "Start Free", highlight: false,
+  },
+  {
+    name: "Growth", price: "₦9,900", period: "/month",
+    tag: "For serious solo creators",
+    features: ["500 generations / month", "All generators (flyers, calendar, images)", "3 brand kits", "Scheduling & shareable links", "Priority AI queue"],
+    cta: "Start Growth", highlight: true,
+  },
+  {
+    name: "Agency", price: "₦29,900", period: "/month",
+    tag: "For teams & agencies",
+    features: ["Unlimited generations", "Unlimited brand kits", "Team workspaces & seats", "Client sharing", "Priority support"],
+    cta: "Talk to us", highlight: false,
+  },
 ];
 
 export function Pricing() {
+  const { t } = useI18n();
   return (
     <section id="pricing" className="border-t border-border bg-muted/30 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Pricing</p>
-          <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Naira pricing. No surprises.</h2>
-          <p className="mt-4 text-muted-foreground">Start free. Upgrade only when you're winning.</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">{t("pricing.eyebrow")}</p>
+          <h2 className="mt-2 text-3xl font-bold sm:text-4xl">{t("pricing.title")}</h2>
+          <p className="mt-4 text-muted-foreground">{t("pricing.subtitle")}</p>
         </div>
 
-        <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-5 md:grid-cols-3">
           {plans.map((p) => (
             <div
               key={p.name}
@@ -29,6 +45,7 @@ export function Pricing() {
                 <span className="absolute -top-3 left-6 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Most popular</span>
               )}
               <h3 className="text-lg font-semibold">{p.name}</h3>
+              <p className="text-xs text-muted-foreground">{p.tag}</p>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-bold">{p.price}</span>
                 <span className="text-sm text-muted-foreground">{p.period}</span>
