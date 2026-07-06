@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Zap } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export function Hero() {
+  const { t } = useI18n();
   return (
     <section className="relative overflow-hidden bg-gradient-hero">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-20%,oklch(0.85_0.15_160/0.25),transparent_60%)]" />
@@ -10,31 +12,31 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            Built for Nigerian businesses
+            {t("hero.badge")}
           </div>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Create Nigerian Social Media Content in{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">Seconds</span>
+            {t("hero.title1")}{" "}
+            <span className="bg-gradient-primary bg-clip-text text-transparent">{t("hero.title2")}</span>
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            Generate captions, WhatsApp campaigns and 30-day content calendars powered by AI — localized for Lagos, Abuja, PH and beyond.
+            {t("hero.subtitle")}
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/auth" search={{ mode: "register" }}>
               <Button size="lg" className="h-12 bg-gradient-primary px-7 text-base text-primary-foreground shadow-elegant hover:opacity-95">
-                Start Free <ArrowRight className="ml-2 h-4 w-4" />
+                {t("hero.cta")} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <a href="#features">
-              <Button size="lg" variant="outline" className="h-12 px-7 text-base">See how it works</Button>
+              <Button size="lg" variant="outline" className="h-12 px-7 text-base">{t("hero.secondary")}</Button>
             </a>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><Zap className="h-4 w-4 text-primary" /> 20 free generations / month</span>
+            <span className="inline-flex items-center gap-1.5"><Zap className="h-4 w-4 text-primary" /> {t("hero.free")}</span>
             <span>•</span>
-            <span>No credit card required</span>
+            <span>{t("hero.nocard")}</span>
           </div>
         </div>
 
