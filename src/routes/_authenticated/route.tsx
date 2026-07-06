@@ -1,11 +1,13 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyRoles, listBrands, getProfile } from "@/lib/generators.functions";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -33,6 +35,7 @@ function AuthedLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [menuOpen, setMenuOpen] = useState(false);
   const roles = useServerFn(getMyRoles);
   const brands = useServerFn(listBrands);
   const profile = useServerFn(getProfile);
