@@ -115,6 +115,20 @@ export async function generateImageBytes(prompt: string, model = DEFAULT_IMAGE_M
       };
       const parts = data.candidates?.[0]?.content?.parts ?? [];
       const b64 = parts.find((p) => p.inlineData?.data)?.inlineData?.data;
-  if (!b64) throw new Error("Gemini returned no image data.");
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      if (!b64) throw new Error("Gemini returned no image data.");
+      return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    } catch (err) {
+      clearTimeout(timeout);
+      lastErr = err;
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const isNetwork = err instanceof TypeError; // fetch failed
+      if ((isAbort || isNetwork) && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Gemini image generation failed.");
 }
+
