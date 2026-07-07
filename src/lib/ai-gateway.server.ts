@@ -1,9 +1,29 @@
-// Server-only Lovable AI Gateway helper.
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Server-only Google Gemini API helper.
+// Uses the user's GEMINI_API_KEY directly (no Lovable AI Gateway).
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const DEFAULT_TEXT_MODEL = "gemini-2.5-flash";
+const DEFAULT_IMAGE_MODEL = "gemini-2.5-flash-image";
 
 export interface AIMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+function getKey(): string {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("Missing GEMINI_API_KEY. Add it in project secrets.");
+  return key;
+}
+
+function toGeminiParts(messages: AIMessage[]) {
+  const systemText = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const contents = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+  return { systemText, contents };
 }
 
 export async function chatCompletion(opts: {
@@ -12,31 +32,67 @@ export async function chatCompletion(opts: {
   temperature?: number;
   response_format?: { type: "json_object" };
 }): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  const key = getKey();
+  const model = opts.model ?? DEFAULT_TEXT_MODEL;
+  const { systemText, contents } = toGeminiParts(opts.messages);
 
-  const res = await fetch(GATEWAY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`,
-      "X-Lovable-AIG-SDK": "raw-fetch",
-    },
-    body: JSON.stringify({
-      model: opts.model ?? "google/gemini-3-flash-preview",
-      messages: opts.messages,
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: {
       temperature: opts.temperature ?? 0.9,
-      ...(opts.response_format ? { response_format: opts.response_format } : {}),
+      ...(opts.response_format?.type === "json_object"
+        ? { responseMimeType: "application/json" }
+        : {}),
+    },
+  };
+  if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
+
+  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${key}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    if (res.status === 429) throw new Error("Gemini rate limit reached. Please try again in a moment.");
+    if (res.status === 401 || res.status === 403) throw new Error("Invalid GEMINI_API_KEY.");
+    throw new Error(`Gemini error ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  const data = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  return parts.map((p) => p.text ?? "").join("");
+}
+
+/**
+ * Generate an image with Gemini (gemini-2.5-flash-image / "Nano Banana").
+ * Returns raw PNG bytes.
+ */
+export async function generateImageBytes(prompt: string, model = DEFAULT_IMAGE_MODEL): Promise<Uint8Array> {
+  const key = getKey();
+  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${key}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     }),
   });
 
   if (!res.ok) {
-    if (res.status === 429) throw new Error("Rate limit reached. Please try again in a moment.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please add credits in your workspace.");
     const text = await res.text();
-    throw new Error(`AI gateway error ${res.status}: ${text.slice(0, 200)}`);
+    if (res.status === 429) throw new Error("Gemini rate limit reached. Please try again in a moment.");
+    if (res.status === 401 || res.status === 403) throw new Error("Invalid GEMINI_API_KEY.");
+    throw new Error(`Gemini image error ${res.status}: ${text.slice(0, 300)}`);
   }
 
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return data.choices?.[0]?.message?.content ?? "";
+  const data = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
+  };
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const b64 = parts.find((p) => p.inlineData?.data)?.inlineData?.data;
+  if (!b64) throw new Error("Gemini returned no image data.");
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
