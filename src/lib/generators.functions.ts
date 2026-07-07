@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { chatCompletion } from "./ai-gateway.server";
+import { chatCompletion, generateImageBytes } from "./ai-gateway.server";
 
 export const FREE_MONTHLY_LIMIT = 20;
 
