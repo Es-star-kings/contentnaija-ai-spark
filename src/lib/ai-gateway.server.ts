@@ -73,26 +73,62 @@ export async function chatCompletion(opts: {
  */
 export async function generateImageBytes(prompt: string, model = DEFAULT_IMAGE_MODEL): Promise<Uint8Array> {
   const key = getKey();
-  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${key}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    }),
+  const url = `${GEMINI_BASE}/${model}:generateContent?key=${key}`;
+  const body = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { responseModalities: ["IMAGE"] },
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("Gemini rate limit reached. Please try again in a moment.");
-    if (res.status === 401 || res.status === 403) throw new Error("Invalid GEMINI_API_KEY.");
-    throw new Error(`Gemini image error ${res.status}: ${text.slice(0, 300)}`);
-  }
+  // Retry with exponential backoff on 429 / 5xx / transient network errors.
+  const MAX_ATTEMPTS = 4;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
-  };
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const b64 = parts.find((p) => p.inlineData?.data)?.inlineData?.data;
-  if (!b64) throw new Error("Gemini returned no image data.");
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      if (res.status === 429 || res.status >= 500) {
+        const text = await res.text().catch(() => "");
+        lastErr = new Error(`Gemini ${res.status}: ${text.slice(0, 200)}`);
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));
+          continue;
+        }
+        if (res.status === 429) throw new Error("Gemini is rate-limiting your key. Wait a minute and try again, or upgrade your Gemini quota.");
+        throw lastErr;
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        if (res.status === 401 || res.status === 403) throw new Error("Invalid GEMINI_API_KEY.");
+        throw new Error(`Gemini image error ${res.status}: ${text.slice(0, 300)}`);
+      }
+
+      const data = (await res.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
+      };
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const b64 = parts.find((p) => p.inlineData?.data)?.inlineData?.data;
+      if (!b64) throw new Error("Gemini returned no image data.");
+      return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    } catch (err) {
+      clearTimeout(timeout);
+      lastErr = err;
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const isNetwork = err instanceof TypeError; // fetch failed
+      if ((isAbort || isNetwork) && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Gemini image generation failed.");
 }
+
