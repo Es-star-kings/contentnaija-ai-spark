@@ -1148,3 +1148,200 @@ export const acceptInvitation = createServerFn({ method: "POST" })
     await supabase.from("profiles").update({ active_workspace_id: wsId } as any).eq("id", userId);
     return { workspace_id: wsId };
   });
+
+// ---------- Feature waitlist ----------
+const WaitlistInput = z.object({ feature_name: z.string().min(1).max(80) });
+export const joinFeatureWaitlist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WaitlistInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context;
+    const email = (claims as any)?.email ?? "";
+    const { error } = await supabase
+      .from("feature_waitlist" as any)
+      .insert({ user_id: userId, email, feature_name: data.feature_name } as any);
+    if (error && !/duplicate key/i.test(error.message)) throw new Error(error.message);
+    return { ok: true, already: !!error };
+  });
+
+// ---------- WhatsApp Marketing Suite ----------
+
+const WA_TONE_GUIDE = (tone: string, pidgin?: boolean) =>
+  `Tone: ${tone}. ${pidgin ? "Mix in light Nigerian pidgin naturally where it fits." : "Use natural conversational Nigerian English."}
+Do not sound like a generic template. Vary sentence starters between variations. Use tasteful emojis (0-3 per message).`;
+
+// Broadcast
+const WABroadcastInput = z.object({
+  businessName: z.string().min(1).max(120),
+  product: z.string().min(1).max(160),
+  offer: z.string().max(200).optional().default(""),
+  audience: z.string().max(160).optional().default(""),
+  tone: z.string().min(1).max(60),
+  cta: z.string().max(160).optional().default(""),
+  includePidgin: z.boolean().default(false),
+});
+export type WABroadcastOutput = { messages: Array<{ label: string; body: string }> };
+export const generateWABroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WABroadcastInput.parse(input))
+  .handler(async ({ data, context }): Promise<WABroadcastOutput & { remaining: number | null }> => {
+    const { supabase, userId } = context;
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+    const user = `Write 3 WhatsApp broadcast messages for ${data.businessName}.
+${brandLine(brand)}Product/Service: ${data.product}
+${data.offer ? `Offer: ${data.offer}` : ""}
+${data.audience ? `Audience: ${data.audience}` : ""}
+${data.cta ? `Call to action: ${data.cta}` : ""}
+${WA_TONE_GUIDE(data.tone, data.includePidgin)}
+
+Rules: WhatsApp formatting (*bold* with asterisks, short paragraphs, line breaks). Under 600 chars each.
+Angles: (1) Direct offer (2) Story / social proof (3) Urgency / scarcity.
+Return JSON: {"messages":[{"label":"Direct offer","body":"..."}]}`;
+    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const parsed = parseJSON<WABroadcastOutput>(raw);
+    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_broadcast", brand_id: brandId, inputs: data as any, output: parsed as any });
+    return { ...parsed, remaining: remainingFrom(used, limit) };
+  });
+
+// Status
+const WAStatusInput = z.object({
+  businessType: z.string().min(1).max(120),
+  topic: z.string().min(1).max(200),
+  category: z.enum(["Promotional", "Educational", "Storytelling", "Behind the Scenes", "Customer Testimonial", "Daily Tip"]),
+  tone: z.string().min(1).max(60),
+  variations: z.number().int().min(1).max(6).default(4),
+  includePidgin: z.boolean().default(false),
+});
+export type WAStatusOutput = { statuses: Array<{ body: string }> };
+export const generateWAStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WAStatusInput.parse(input))
+  .handler(async ({ data, context }): Promise<WAStatusOutput & { remaining: number | null }> => {
+    const { supabase, userId } = context;
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+    const user = `Write ${data.variations} high-converting WhatsApp Status updates for a Nigerian ${data.businessType}.
+${brandLine(brand)}Topic: ${data.topic}
+Category: ${data.category}
+${WA_TONE_GUIDE(data.tone, data.includePidgin)}
+
+Rules: Under 280 characters each. Punchy hook in first line. Every variation must open differently.
+Return JSON: {"statuses":[{"body":"..."}]}`;
+    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const parsed = parseJSON<WAStatusOutput>(raw);
+    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_status", brand_id: brandId, inputs: data as any, output: parsed as any });
+    return { ...parsed, remaining: remainingFrom(used, limit) };
+  });
+
+// Follow-up
+const WAFollowUpInput = z.object({
+  businessName: z.string().min(1).max(120),
+  scenario: z.enum(["No reply", "Payment reminder", "Order confirmation", "Delivery update", "Abandoned cart", "Appointment reminder", "Customer feedback request"]),
+  context: z.string().max(300).optional().default(""),
+  tone: z.enum(["Friendly", "Professional", "Persuasive"]).default("Friendly"),
+});
+export type WAFollowUpOutput = { messages: Array<{ label: string; body: string }> };
+export const generateWAFollowUp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WAFollowUpInput.parse(input))
+  .handler(async ({ data, context }): Promise<WAFollowUpOutput & { remaining: number | null }> => {
+    const { supabase, userId } = context;
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+    const user = `Write 3 WhatsApp follow-up messages from ${data.businessName}.
+${brandLine(brand)}Scenario: ${data.scenario}
+${data.context ? `Extra context: ${data.context}` : ""}
+${WA_TONE_GUIDE(data.tone)}
+
+Rules: Under 500 chars. Sound human, respectful — not pushy. Give a next step.
+Vary the openers across variations (do NOT all start with "Hi" or "Hello").
+Return JSON: {"messages":[{"label":"Soft nudge","body":"..."}]}`;
+    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const parsed = parseJSON<WAFollowUpOutput>(raw);
+    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_followup", brand_id: brandId, inputs: data as any, output: parsed as any });
+    return { ...parsed, remaining: remainingFrom(used, limit) };
+  });
+
+// Promo
+const WAPromoInput = z.object({
+  businessName: z.string().min(1).max(120),
+  product: z.string().min(1).max(160),
+  promoType: z.enum(["Product Launch", "Flash Sale", "Discount", "Clearance Sale", "New Arrival", "Referral Program", "Giveaway"]),
+  offer: z.string().max(200).optional().default(""),
+  tone: z.string().min(1).max(60),
+  includePidgin: z.boolean().default(false),
+});
+export type WAPromoOutput = { messages: Array<{ label: string; body: string }> };
+export const generateWAPromo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WAPromoInput.parse(input))
+  .handler(async ({ data, context }): Promise<WAPromoOutput & { remaining: number | null }> => {
+    const { supabase, userId } = context;
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+    const user = `Write 3 promotional WhatsApp marketing messages for ${data.businessName}.
+${brandLine(brand)}Promo type: ${data.promoType}
+Product: ${data.product}
+${data.offer ? `Offer details: ${data.offer}` : ""}
+${WA_TONE_GUIDE(data.tone, data.includePidgin)}
+
+Rules: WhatsApp formatting (*bold*). Include emojis. Under 550 chars each.
+Angles: (1) Excitement/launch hype (2) Value/savings-focused (3) Scarcity/deadline.
+Return JSON: {"messages":[{"label":"Hype","body":"..."}]}`;
+    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const parsed = parseJSON<WAPromoOutput>(raw);
+    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_promo", brand_id: brandId, inputs: data as any, output: parsed as any });
+    return { ...parsed, remaining: remainingFrom(used, limit) };
+  });
+
+// Holiday campaign — multi-channel
+const WAHolidayInput = z.object({
+  businessName: z.string().min(1).max(120),
+  product: z.string().min(1).max(200),
+  holiday: z.enum([
+    "Christmas", "New Year", "Easter", "Eid al-Fitr", "Eid al-Adha",
+    "Black Friday", "Cyber Monday", "Valentine's Day", "Mother's Day",
+    "Father's Day", "Children's Day", "Nigerian Independence Day",
+    "Democracy Day", "Back to School", "End of Month Sales",
+  ]),
+  offer: z.string().max(200).optional().default(""),
+  tone: z.string().min(1).max(60),
+  includePidgin: z.boolean().default(false),
+});
+export type WAHolidayOutput = {
+  whatsapp_broadcast: string;
+  whatsapp_status: string;
+  instagram_caption: string;
+  facebook_caption: string;
+  cta: string;
+  hashtags: string[];
+};
+export const generateWAHoliday = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => WAHolidayInput.parse(input))
+  .handler(async ({ data, context }): Promise<WAHolidayOutput & { remaining: number | null }> => {
+    const { supabase, userId } = context;
+    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { data: brand, brandId } = await loadBrand(supabase, userId);
+    const user = `Create a complete ${data.holiday} marketing campaign for ${data.businessName}.
+${brandLine(brand)}Product/Service: ${data.product}
+${data.offer ? `Offer: ${data.offer}` : ""}
+${WA_TONE_GUIDE(data.tone, data.includePidgin)}
+Weave in the cultural spirit of ${data.holiday} authentically for a Nigerian audience.
+
+Return JSON exactly:
+{
+  "whatsapp_broadcast": "WhatsApp broadcast under 600 chars with *bold*",
+  "whatsapp_status": "WhatsApp status under 280 chars",
+  "instagram_caption": "Instagram caption 4-8 lines with emojis",
+  "facebook_caption": "Facebook caption 3-5 lines",
+  "cta": "single strong call to action line",
+  "hashtags": ["#tag1","#tag2"]
+}
+Include 8-12 highly relevant hashtags mixing Nigerian and niche tags.`;
+    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const parsed = parseJSON<WAHolidayOutput>(raw);
+    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_holiday", brand_id: brandId, inputs: data as any, output: parsed as any });
+    return { ...parsed, remaining: remainingFrom(used, limit) };
+  });
