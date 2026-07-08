@@ -13,9 +13,16 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 const TYPE_LABEL: Record<string, string> = {
   instagram_caption: "Instagram",
   whatsapp_campaign: "WhatsApp",
+  wa_broadcast: "WA Broadcast",
+  wa_status: "WA Status",
+  wa_followup: "WA Follow-up",
+  wa_promo: "WA Promo",
+  wa_holiday: "Holiday Campaign",
   flyer_copy: "Flyer",
   content_calendar: "Calendar",
 };
+
+const WA_TYPES = new Set(["whatsapp_campaign", "wa_broadcast", "wa_status", "wa_followup", "wa_promo", "wa_holiday"]);
 
 function AnalyticsPage() {
   const fn = useServerFn(getAnalytics);
