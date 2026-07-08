@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getAnalytics } from "@/lib/generators.functions";
-import { BarChart3, Sparkles, Star, TrendingUp, Calendar as CalIcon } from "lucide-react";
+import { BarChart3, Sparkles, Star, TrendingUp, Calendar as CalIcon, MessageCircle, Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
