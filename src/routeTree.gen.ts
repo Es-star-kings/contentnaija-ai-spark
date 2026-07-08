@@ -25,7 +25,6 @@ import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ForIndustryRouteImport } from './routes/for.$industry'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
@@ -120,11 +119,6 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => BlogRoute,
-} as any)
-const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
@@ -228,7 +222,6 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
-  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -261,7 +254,6 @@ export interface FileRoutesByTo {
   '/schedule': typeof AuthenticatedScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
-  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -296,7 +288,6 @@ export interface FileRoutesById {
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
-  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$industry': typeof ForIndustryRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -331,7 +322,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/team'
-    | '/whatsapp'
     | '/blog/$slug'
     | '/for/$industry'
     | '/invite/$token'
@@ -364,7 +354,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/team'
-    | '/whatsapp'
     | '/blog/$slug'
     | '/for/$industry'
     | '/invite/$token'
@@ -398,7 +387,6 @@ export interface FileRouteTypes {
     | '/_authenticated/schedule'
     | '/_authenticated/settings'
     | '/_authenticated/team'
-    | '/_authenticated/whatsapp'
     | '/blog/$slug'
     | '/for/$industry'
     | '/invite/$token'
@@ -543,13 +531,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
     }
-    '/_authenticated/whatsapp': {
-      id: '/_authenticated/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/whatsapp'
-      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/team': {
       id: '/_authenticated/team'
       path: '/team'
@@ -668,7 +649,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
-  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedGenerateCalendarRoute: typeof AuthenticatedGenerateCalendarRoute
   AuthenticatedGenerateFlyerRoute: typeof AuthenticatedGenerateFlyerRoute
   AuthenticatedGenerateImageRoute: typeof AuthenticatedGenerateImageRoute
@@ -687,7 +667,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
-  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedGenerateCalendarRoute: AuthenticatedGenerateCalendarRoute,
   AuthenticatedGenerateFlyerRoute: AuthenticatedGenerateFlyerRoute,
   AuthenticatedGenerateImageRoute: AuthenticatedGenerateImageRoute,
