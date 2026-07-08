@@ -34,6 +34,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBrandsRouteImport } from './routes/_authenticated/brands'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedWhatsappIndexRouteImport } from './routes/_authenticated/whatsapp.index'
 import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
 import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
 import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
@@ -165,6 +166,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWhatsappIndexRoute =
+  AuthenticatedWhatsappIndexRouteImport.update({
+    id: '/whatsapp/',
+    path: '/whatsapp/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGenerateIndexRoute =
   AuthenticatedGenerateIndexRouteImport.update({
     id: '/generate/',
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/generate/': typeof AuthenticatedGenerateIndexRoute
+  '/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -265,6 +273,7 @@ export interface FileRoutesByTo {
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/generate': typeof AuthenticatedGenerateIndexRoute
+  '/whatsapp': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -299,6 +308,7 @@ export interface FileRoutesById {
   '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
+  '/_authenticated/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/generate/'
+    | '/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/generate'
+    | '/whatsapp'
   id:
     | '__root__'
     | '/'
@@ -398,6 +410,7 @@ export interface FileRouteTypes {
     | '/_authenticated/generate/instagram'
     | '/_authenticated/generate/whatsapp'
     | '/_authenticated/generate/'
+    | '/_authenticated/whatsapp/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp/': {
+      id: '/_authenticated/whatsapp/'
+      path: '/whatsapp'
+      fullPath: '/whatsapp/'
+      preLoaderRoute: typeof AuthenticatedWhatsappIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/generate/': {
       id: '/_authenticated/generate/'
       path: '/generate'
@@ -655,6 +675,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
   AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
   AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
+  AuthenticatedWhatsappIndexRoute: typeof AuthenticatedWhatsappIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -673,6 +694,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
   AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
   AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,
+  AuthenticatedWhatsappIndexRoute: AuthenticatedWhatsappIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
