@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedWhatsappIndexRouteImport } from './routes/_authenticated/whatsapp.index'
 import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
 import { Route as AuthenticatedWhatsappStatusRouteImport } from './routes/_authenticated/whatsapp.status'
+import { Route as AuthenticatedWhatsappFollowupRouteImport } from './routes/_authenticated/whatsapp.followup'
 import { Route as AuthenticatedWhatsappBroadcastRouteImport } from './routes/_authenticated/whatsapp.broadcast'
 import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
 import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
@@ -186,6 +187,12 @@ const AuthenticatedWhatsappStatusRoute =
     path: '/whatsapp/status',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWhatsappFollowupRoute =
+  AuthenticatedWhatsappFollowupRouteImport.update({
+    id: '/whatsapp/followup',
+    path: '/whatsapp/followup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWhatsappBroadcastRoute =
   AuthenticatedWhatsappBroadcastRouteImport.update({
     id: '/whatsapp/broadcast',
@@ -254,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
   '/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/generate/': typeof AuthenticatedGenerateIndexRoute
   '/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
   '/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/generate': typeof AuthenticatedGenerateIndexRoute
   '/whatsapp': typeof AuthenticatedWhatsappIndexRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
   '/_authenticated/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/_authenticated/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
   '/_authenticated/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
   '/_authenticated/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/whatsapp/broadcast'
+    | '/whatsapp/followup'
     | '/whatsapp/status'
     | '/generate/'
     | '/whatsapp/'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/generate/instagram'
     | '/generate/whatsapp'
     | '/whatsapp/broadcast'
+    | '/whatsapp/followup'
     | '/whatsapp/status'
     | '/generate'
     | '/whatsapp'
@@ -434,6 +446,7 @@ export interface FileRouteTypes {
     | '/_authenticated/generate/instagram'
     | '/_authenticated/generate/whatsapp'
     | '/_authenticated/whatsapp/broadcast'
+    | '/_authenticated/whatsapp/followup'
     | '/_authenticated/whatsapp/status'
     | '/_authenticated/generate/'
     | '/_authenticated/whatsapp/'
@@ -654,6 +667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappStatusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp/followup': {
+      id: '/_authenticated/whatsapp/followup'
+      path: '/whatsapp/followup'
+      fullPath: '/whatsapp/followup'
+      preLoaderRoute: typeof AuthenticatedWhatsappFollowupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp/broadcast': {
       id: '/_authenticated/whatsapp/broadcast'
       path: '/whatsapp/broadcast'
@@ -715,6 +735,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
   AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
   AuthenticatedWhatsappBroadcastRoute: typeof AuthenticatedWhatsappBroadcastRoute
+  AuthenticatedWhatsappFollowupRoute: typeof AuthenticatedWhatsappFollowupRoute
   AuthenticatedWhatsappStatusRoute: typeof AuthenticatedWhatsappStatusRoute
   AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
   AuthenticatedWhatsappIndexRoute: typeof AuthenticatedWhatsappIndexRoute
@@ -736,6 +757,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
   AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
   AuthenticatedWhatsappBroadcastRoute: AuthenticatedWhatsappBroadcastRoute,
+  AuthenticatedWhatsappFollowupRoute: AuthenticatedWhatsappFollowupRoute,
   AuthenticatedWhatsappStatusRoute: AuthenticatedWhatsappStatusRoute,
   AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,
   AuthenticatedWhatsappIndexRoute: AuthenticatedWhatsappIndexRoute,
