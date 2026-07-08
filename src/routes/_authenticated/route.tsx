@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
 const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/generate", label: "Generate", icon: Wand2 },
+  { to: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/brands", label: "Brands", icon: Building2 },
   { to: "/team", label: "Team", icon: Users },
