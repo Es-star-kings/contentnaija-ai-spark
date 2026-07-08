@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users, Menu } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users, Menu, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
 const baseNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/generate", label: "Generate", icon: Wand2 },
+  { to: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/brands", label: "Brands", icon: Building2 },
   { to: "/team", label: "Team", icon: Users },

@@ -1,154 +1,107 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { generateImage, type ImageOutput } from "@/lib/generators.functions";
-import { Wand2, Loader2, Download, ImageIcon } from "lucide-react";
+import { joinFeatureWaitlist } from "@/lib/generators.functions";
+import { ArrowLeft, ImageIcon, Rocket, Bell, Check, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { GeneratorShell, GeneratorEmpty, GeneratorSkeleton } from "@/components/generators/GeneratorShell";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/generate/image")({
-  head: () => ({ meta: [{ title: "AI Image Generator — ContentNaija AI" }] }),
-  component: ImageGen,
+  head: () => ({ meta: [{ title: "AI Image Generator — Coming Soon | ContentNaija AI" }] }),
+  component: ImageComingSoon,
 });
 
-type Result = ImageOutput & { remaining: number | null };
+const CAPABILITIES = [
+  "AI Product Images",
+  "Social Media Flyers",
+  "Marketing Posters",
+  "Instagram Creatives",
+  "Facebook Ad Images",
+  "WhatsApp Status Designs",
+];
 
-function ImageGen() {
-  const fn = useServerFn(generateImage);
-  const qc = useQueryClient();
-  const [prompt, setPrompt] = useState("");
-  const [style, setStyle] = useState("Vibrant marketing photo");
-  const [purpose, setPurpose] = useState<"flyer" | "social" | "product" | "logo">("social");
-  const [aspect, setAspect] = useState<"1024x1024" | "1024x1536" | "1536x1024">("1024x1024");
-  const [result, setResult] = useState<Result | null>(null);
-
-  const mutation = useMutation({
-    mutationFn: () => fn({ data: { prompt, style, purpose, aspect } }),
+function ImageComingSoon() {
+  const fn = useServerFn(joinFeatureWaitlist);
+  const [joined, setJoined] = useState(false);
+  const notify = useMutation({
+    mutationFn: () => fn({ data: { feature_name: "ai_image_generator" } }),
     onSuccess: (r) => {
-      setResult(r);
-      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      qc.invalidateQueries({ queryKey: ["history"] });
-      toast.success("Image ready!");
+      setJoined(true);
+      toast.success(r.already ? "You're already on the list!" : "You're on the waitlist 🎉");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to generate"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not join"),
   });
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!prompt.trim()) return toast.error("Describe the image you want.");
-    mutation.mutate();
-  }
-
-  async function download() {
-    if (!result) return;
-    try {
-      const res = await fetch(result.url);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `contentnaija-${Date.now()}.png`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      toast.error("Download failed.");
-    }
-  }
-
-  const form = (
-    <form onSubmit={submit} className="space-y-4">
-      <div>
-        <Label htmlFor="prompt">What should the image show?</Label>
-        <Textarea
-          id="prompt"
-          rows={4}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g. A jollof rice plate steaming on a wooden table with ankara cloth in the background"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="style">Style</Label>
-        <Input
-          id="style"
-          value={style}
-          onChange={(e) => setStyle(e.target.value)}
-          placeholder="Vibrant marketing photo / minimal flat / cinematic"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Purpose</Label>
-          <Select value={purpose} onValueChange={(v) => setPurpose(v as typeof purpose)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="social">Social post</SelectItem>
-              <SelectItem value="flyer">Flyer / poster</SelectItem>
-              <SelectItem value="product">Product shot</SelectItem>
-              <SelectItem value="logo">Logo / icon</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Aspect</Label>
-          <Select value={aspect} onValueChange={(v) => setAspect(v as typeof aspect)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1024x1024">Square 1:1</SelectItem>
-              <SelectItem value="1024x1536">Portrait 2:3</SelectItem>
-              <SelectItem value="1536x1024">Landscape 3:2</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Button type="submit" disabled={mutation.isPending} className="w-full">
-        {mutation.isPending ? (
-          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating image (15-30s)…</>
-        ) : (
-          <><Wand2 className="mr-2 h-4 w-4" /> Generate image</>
-        )}
-      </Button>
-      <p className="text-xs text-muted-foreground">
-        Image generation costs more credits than text. Avoid copyrighted characters or real people.
-      </p>
-    </form>
-  );
-
-  const output = mutation.isPending ? (
-    <GeneratorSkeleton count={1} />
-  ) : result ? (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-        <img src={result.url} alt={prompt} className="w-full" />
-      </div>
-      <div className="flex gap-2">
-        <Button onClick={download} variant="default" className="flex-1">
-          <Download className="mr-2 h-4 w-4" /> Download PNG
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Signed URL valid for 7 days. Re-open from History to refresh access.
-      </p>
-    </div>
-  ) : (
-    <GeneratorEmpty icon={ImageIcon} message="Your AI image will appear here." />
-  );
-
   return (
-    <GeneratorShell
-      title="AI Image Generator"
-      description="Create flyer, product and social images tuned for your brand."
-      form={form}
-      output={output}
-      remaining={result?.remaining ?? null}
-    />
+    <div className="mx-auto max-w-4xl p-4 sm:p-8">
+      <Link to="/generate" className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-3.5 w-3.5" /> All generators
+      </Link>
+
+      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+        <div className="relative bg-gradient-primary p-8 text-primary-foreground sm:p-12">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+            <Rocket className="h-3.5 w-3.5" /> Coming Soon
+          </span>
+          <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-white/20 backdrop-blur">
+              <ImageIcon className="h-10 w-10" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold sm:text-4xl">AI Image Generator</h1>
+              <p className="mt-2 max-w-xl text-sm text-white/90 sm:text-base">
+                We're building a professional-grade image studio tuned for Nigerian brands — flyers,
+                product shots, ads and social creatives in one click.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-8 p-6 sm:p-10 md:grid-cols-[1fr_320px]">
+          <div>
+            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-primary" /> What's coming
+            </h2>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {CAPABILITIES.map((c) => (
+                <li key={c} className="flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm">
+                  <Check className="h-4 w-4 shrink-0 text-primary" />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 rounded-xl border border-dashed border-border bg-muted/40 p-4 text-xs text-muted-foreground">
+              This feature is currently under development. Join the waiting list and we'll email you
+              the moment it goes live.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/30 p-5">
+            <p className="text-sm font-medium">Be the first to try it</p>
+            <Button disabled className="h-11 cursor-not-allowed opacity-70">
+              <Rocket className="mr-2 h-4 w-4" /> Coming Soon
+            </Button>
+            <Button
+              onClick={() => notify.mutate()}
+              disabled={notify.isPending || joined}
+              variant={joined ? "outline" : "default"}
+              className="h-11 bg-gradient-primary text-primary-foreground disabled:bg-gradient-primary disabled:opacity-90"
+            >
+              {notify.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding you…</>
+              ) : joined ? (
+                <><Check className="mr-2 h-4 w-4" /> On the waitlist</>
+              ) : (
+                <><Bell className="mr-2 h-4 w-4" /> Notify Me</>
+              )}
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              In the meantime, try our WhatsApp Marketing Suite and Instagram caption generator.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

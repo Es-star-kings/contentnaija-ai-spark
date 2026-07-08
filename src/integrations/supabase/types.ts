@@ -64,6 +64,30 @@ export type Database = {
           },
         ]
       }
+      feature_waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          feature_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          feature_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          feature_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_content: {
         Row: {
           brand_id: string | null

@@ -27,6 +27,22 @@ export function previewText(generator_type: string, output: AnyOutput): string {
   if (generator_type === "image") {
     return output?.prompt ?? "Generated image";
   }
+  if (generator_type === "wa_broadcast" || generator_type === "wa_promo" || generator_type === "wa_followup") {
+    return (output?.messages ?? []).map((m: any, i: number) => `Message ${i + 1} — ${m.label ?? ""}\n${m.body}`).join("\n\n");
+  }
+  if (generator_type === "wa_status") {
+    return (output?.statuses ?? []).map((s: any, i: number) => `Status ${i + 1}\n${s.body}`).join("\n\n");
+  }
+  if (generator_type === "wa_holiday") {
+    return [
+      `📣 WhatsApp Broadcast\n${output?.whatsapp_broadcast ?? ""}`,
+      `📱 WhatsApp Status\n${output?.whatsapp_status ?? ""}`,
+      `📸 Instagram Caption\n${output?.instagram_caption ?? ""}`,
+      `👍 Facebook Caption\n${output?.facebook_caption ?? ""}`,
+      `🎯 CTA\n${output?.cta ?? ""}`,
+      `# Hashtags\n${(output?.hashtags ?? []).map((h: string) => `#${h.replace(/^#/, "")}`).join(" ")}`,
+    ].join("\n\n");
+  }
   return JSON.stringify(output, null, 2);
 }
 

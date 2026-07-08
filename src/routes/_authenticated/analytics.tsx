@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getAnalytics } from "@/lib/generators.functions";
-import { BarChart3, Sparkles, Star, TrendingUp, Calendar as CalIcon } from "lucide-react";
+import { BarChart3, Sparkles, Star, TrendingUp, Calendar as CalIcon, MessageCircle, Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
@@ -13,9 +13,16 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 const TYPE_LABEL: Record<string, string> = {
   instagram_caption: "Instagram",
   whatsapp_campaign: "WhatsApp",
+  wa_broadcast: "WA Broadcast",
+  wa_status: "WA Status",
+  wa_followup: "WA Follow-up",
+  wa_promo: "WA Promo",
+  wa_holiday: "Holiday Campaign",
   flyer_copy: "Flyer",
   content_calendar: "Calendar",
 };
+
+const WA_TYPES = new Set(["whatsapp_campaign", "wa_broadcast", "wa_status", "wa_followup", "wa_promo", "wa_holiday"]);
 
 function AnalyticsPage() {
   const fn = useServerFn(getAnalytics);
@@ -27,6 +34,12 @@ function AnalyticsPage() {
   const pct = unlimited ? 0 : Math.min(100, (monthly / (limit || 1)) * 100);
   const maxDay = Math.max(1, ...(data?.days ?? []).map((d) => d.count));
   const totalByType = (data?.generators ?? []).reduce((s, g) => s + g.count, 0) || 1;
+  const waTotal = (data?.generators ?? []).filter((g) => WA_TYPES.has(g.type)).reduce((s, g) => s + g.count, 0);
+  const mostUsedGen = data?.generators?.[0];
+  const mostUsedTone = data?.topTones?.[0];
+  const days = data?.days ?? [];
+  const weekTotal = days.slice(-7).reduce((s, d) => s + d.count, 0);
+  const todayTotal = days[days.length - 1]?.count ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-8">
@@ -42,6 +55,13 @@ function AnalyticsPage() {
         <Stat icon={TrendingUp} label="Last 30 days" value={isLoading ? "—" : String(data?.last30 ?? 0)} hint="Pieces generated" />
         <Stat icon={CalIcon} label="All-time" value={isLoading ? "—" : String(data?.total ?? 0)} hint="Total content" />
         <Stat icon={Star} label="Favorites" value={isLoading ? "—" : String(data?.favorites ?? 0)} hint="Saved for later" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat icon={MessageCircle} label="WhatsApp messages" value={isLoading ? "—" : String(waTotal)} hint="Across all WhatsApp generators" />
+        <Stat icon={Zap} label="Today" value={isLoading ? "—" : String(todayTotal)} hint="Generated today" />
+        <Stat icon={CalIcon} label="Last 7 days" value={isLoading ? "—" : String(weekTotal)} hint="Weekly usage" />
+        <Stat icon={TrendingUp} label="Most-used" value={isLoading || !mostUsedGen ? "—" : (TYPE_LABEL[mostUsedGen.type] ?? mostUsedGen.type)} hint={mostUsedTone ? `Top tone: ${mostUsedTone.tone}` : "Top generator"} />
       </div>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-card">

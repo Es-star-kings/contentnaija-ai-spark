@@ -20,6 +20,11 @@ const TYPES = [
   { v: "all", label: "All generators" },
   { v: "instagram_caption", label: "Instagram captions" },
   { v: "whatsapp_campaign", label: "WhatsApp campaigns" },
+  { v: "wa_broadcast", label: "WhatsApp broadcasts" },
+  { v: "wa_status", label: "WhatsApp status" },
+  { v: "wa_followup", label: "WhatsApp follow-ups" },
+  { v: "wa_promo", label: "WhatsApp promos" },
+  { v: "wa_holiday", label: "Holiday campaigns" },
   { v: "flyer_copy", label: "Flyer copy" },
   { v: "content_calendar", label: "Content calendars" },
 ];
@@ -27,6 +32,11 @@ const TYPES = [
 const LABELS: Record<string, string> = {
   instagram_caption: "Instagram",
   whatsapp_campaign: "WhatsApp",
+  wa_broadcast: "WA Broadcast",
+  wa_status: "WA Status",
+  wa_followup: "WA Follow-up",
+  wa_promo: "WA Promo",
+  wa_holiday: "Holiday Campaign",
   flyer_copy: "Flyer",
   content_calendar: "Calendar",
 };

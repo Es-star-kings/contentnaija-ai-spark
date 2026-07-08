@@ -34,7 +34,13 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBrandsRouteImport } from './routes/_authenticated/brands'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedWhatsappIndexRouteImport } from './routes/_authenticated/whatsapp.index'
 import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
+import { Route as AuthenticatedWhatsappStatusRouteImport } from './routes/_authenticated/whatsapp.status'
+import { Route as AuthenticatedWhatsappPromoRouteImport } from './routes/_authenticated/whatsapp.promo'
+import { Route as AuthenticatedWhatsappHolidayRouteImport } from './routes/_authenticated/whatsapp.holiday'
+import { Route as AuthenticatedWhatsappFollowupRouteImport } from './routes/_authenticated/whatsapp.followup'
+import { Route as AuthenticatedWhatsappBroadcastRouteImport } from './routes/_authenticated/whatsapp.broadcast'
 import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
 import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
 import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authenticated/generate.image'
@@ -165,10 +171,46 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWhatsappIndexRoute =
+  AuthenticatedWhatsappIndexRouteImport.update({
+    id: '/whatsapp/',
+    path: '/whatsapp/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGenerateIndexRoute =
   AuthenticatedGenerateIndexRouteImport.update({
     id: '/generate/',
     path: '/generate/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappStatusRoute =
+  AuthenticatedWhatsappStatusRouteImport.update({
+    id: '/whatsapp/status',
+    path: '/whatsapp/status',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappPromoRoute =
+  AuthenticatedWhatsappPromoRouteImport.update({
+    id: '/whatsapp/promo',
+    path: '/whatsapp/promo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappHolidayRoute =
+  AuthenticatedWhatsappHolidayRouteImport.update({
+    id: '/whatsapp/holiday',
+    path: '/whatsapp/holiday',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappFollowupRoute =
+  AuthenticatedWhatsappFollowupRouteImport.update({
+    id: '/whatsapp/followup',
+    path: '/whatsapp/followup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappBroadcastRoute =
+  AuthenticatedWhatsappBroadcastRouteImport.update({
+    id: '/whatsapp/broadcast',
+    path: '/whatsapp/broadcast',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedGenerateWhatsappRoute =
@@ -232,7 +274,13 @@ export interface FileRoutesByFullPath {
   '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
+  '/whatsapp/holiday': typeof AuthenticatedWhatsappHolidayRoute
+  '/whatsapp/promo': typeof AuthenticatedWhatsappPromoRoute
+  '/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/generate/': typeof AuthenticatedGenerateIndexRoute
+  '/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -264,7 +312,13 @@ export interface FileRoutesByTo {
   '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
+  '/whatsapp/holiday': typeof AuthenticatedWhatsappHolidayRoute
+  '/whatsapp/promo': typeof AuthenticatedWhatsappPromoRoute
+  '/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/generate': typeof AuthenticatedGenerateIndexRoute
+  '/whatsapp': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -298,7 +352,13 @@ export interface FileRoutesById {
   '/_authenticated/generate/image': typeof AuthenticatedGenerateImageRoute
   '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/_authenticated/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
+  '/_authenticated/whatsapp/followup': typeof AuthenticatedWhatsappFollowupRoute
+  '/_authenticated/whatsapp/holiday': typeof AuthenticatedWhatsappHolidayRoute
+  '/_authenticated/whatsapp/promo': typeof AuthenticatedWhatsappPromoRoute
+  '/_authenticated/whatsapp/status': typeof AuthenticatedWhatsappStatusRoute
   '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
+  '/_authenticated/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -332,7 +392,13 @@ export interface FileRouteTypes {
     | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
+    | '/whatsapp/broadcast'
+    | '/whatsapp/followup'
+    | '/whatsapp/holiday'
+    | '/whatsapp/promo'
+    | '/whatsapp/status'
     | '/generate/'
+    | '/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -364,7 +430,13 @@ export interface FileRouteTypes {
     | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
+    | '/whatsapp/broadcast'
+    | '/whatsapp/followup'
+    | '/whatsapp/holiday'
+    | '/whatsapp/promo'
+    | '/whatsapp/status'
     | '/generate'
+    | '/whatsapp'
   id:
     | '__root__'
     | '/'
@@ -397,7 +469,13 @@ export interface FileRouteTypes {
     | '/_authenticated/generate/image'
     | '/_authenticated/generate/instagram'
     | '/_authenticated/generate/whatsapp'
+    | '/_authenticated/whatsapp/broadcast'
+    | '/_authenticated/whatsapp/followup'
+    | '/_authenticated/whatsapp/holiday'
+    | '/_authenticated/whatsapp/promo'
+    | '/_authenticated/whatsapp/status'
     | '/_authenticated/generate/'
+    | '/_authenticated/whatsapp/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -594,11 +672,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp/': {
+      id: '/_authenticated/whatsapp/'
+      path: '/whatsapp'
+      fullPath: '/whatsapp/'
+      preLoaderRoute: typeof AuthenticatedWhatsappIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/generate/': {
       id: '/_authenticated/generate/'
       path: '/generate'
       fullPath: '/generate/'
       preLoaderRoute: typeof AuthenticatedGenerateIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/status': {
+      id: '/_authenticated/whatsapp/status'
+      path: '/whatsapp/status'
+      fullPath: '/whatsapp/status'
+      preLoaderRoute: typeof AuthenticatedWhatsappStatusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/promo': {
+      id: '/_authenticated/whatsapp/promo'
+      path: '/whatsapp/promo'
+      fullPath: '/whatsapp/promo'
+      preLoaderRoute: typeof AuthenticatedWhatsappPromoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/holiday': {
+      id: '/_authenticated/whatsapp/holiday'
+      path: '/whatsapp/holiday'
+      fullPath: '/whatsapp/holiday'
+      preLoaderRoute: typeof AuthenticatedWhatsappHolidayRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/followup': {
+      id: '/_authenticated/whatsapp/followup'
+      path: '/whatsapp/followup'
+      fullPath: '/whatsapp/followup'
+      preLoaderRoute: typeof AuthenticatedWhatsappFollowupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/broadcast': {
+      id: '/_authenticated/whatsapp/broadcast'
+      path: '/whatsapp/broadcast'
+      fullPath: '/whatsapp/broadcast'
+      preLoaderRoute: typeof AuthenticatedWhatsappBroadcastRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/generate/whatsapp': {
@@ -654,7 +774,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGenerateImageRoute: typeof AuthenticatedGenerateImageRoute
   AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
   AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
+  AuthenticatedWhatsappBroadcastRoute: typeof AuthenticatedWhatsappBroadcastRoute
+  AuthenticatedWhatsappFollowupRoute: typeof AuthenticatedWhatsappFollowupRoute
+  AuthenticatedWhatsappHolidayRoute: typeof AuthenticatedWhatsappHolidayRoute
+  AuthenticatedWhatsappPromoRoute: typeof AuthenticatedWhatsappPromoRoute
+  AuthenticatedWhatsappStatusRoute: typeof AuthenticatedWhatsappStatusRoute
   AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
+  AuthenticatedWhatsappIndexRoute: typeof AuthenticatedWhatsappIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -672,7 +798,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGenerateImageRoute: AuthenticatedGenerateImageRoute,
   AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
   AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
+  AuthenticatedWhatsappBroadcastRoute: AuthenticatedWhatsappBroadcastRoute,
+  AuthenticatedWhatsappFollowupRoute: AuthenticatedWhatsappFollowupRoute,
+  AuthenticatedWhatsappHolidayRoute: AuthenticatedWhatsappHolidayRoute,
+  AuthenticatedWhatsappPromoRoute: AuthenticatedWhatsappPromoRoute,
+  AuthenticatedWhatsappStatusRoute: AuthenticatedWhatsappStatusRoute,
   AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,
+  AuthenticatedWhatsappIndexRoute: AuthenticatedWhatsappIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
