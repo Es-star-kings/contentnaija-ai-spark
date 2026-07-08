@@ -36,6 +36,7 @@ import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedWhatsappIndexRouteImport } from './routes/_authenticated/whatsapp.index'
 import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
+import { Route as AuthenticatedWhatsappBroadcastRouteImport } from './routes/_authenticated/whatsapp.broadcast'
 import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
 import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
 import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authenticated/generate.image'
@@ -178,6 +179,12 @@ const AuthenticatedGenerateIndexRoute =
     path: '/generate/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWhatsappBroadcastRoute =
+  AuthenticatedWhatsappBroadcastRouteImport.update({
+    id: '/whatsapp/broadcast',
+    path: '/whatsapp/broadcast',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGenerateWhatsappRoute =
   AuthenticatedGenerateWhatsappRouteImport.update({
     id: '/generate/whatsapp',
@@ -239,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
   '/generate/': typeof AuthenticatedGenerateIndexRoute
   '/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
@@ -272,6 +280,7 @@ export interface FileRoutesByTo {
   '/generate/image': typeof AuthenticatedGenerateImageRoute
   '/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
   '/generate': typeof AuthenticatedGenerateIndexRoute
   '/whatsapp': typeof AuthenticatedWhatsappIndexRoute
 }
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/_authenticated/generate/image': typeof AuthenticatedGenerateImageRoute
   '/_authenticated/generate/instagram': typeof AuthenticatedGenerateInstagramRoute
   '/_authenticated/generate/whatsapp': typeof AuthenticatedGenerateWhatsappRoute
+  '/_authenticated/whatsapp/broadcast': typeof AuthenticatedWhatsappBroadcastRoute
   '/_authenticated/generate/': typeof AuthenticatedGenerateIndexRoute
   '/_authenticated/whatsapp/': typeof AuthenticatedWhatsappIndexRoute
 }
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
+    | '/whatsapp/broadcast'
     | '/generate/'
     | '/whatsapp/'
   fileRoutesByTo: FileRoutesByTo
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/generate/image'
     | '/generate/instagram'
     | '/generate/whatsapp'
+    | '/whatsapp/broadcast'
     | '/generate'
     | '/whatsapp'
   id:
@@ -409,6 +421,7 @@ export interface FileRouteTypes {
     | '/_authenticated/generate/image'
     | '/_authenticated/generate/instagram'
     | '/_authenticated/generate/whatsapp'
+    | '/_authenticated/whatsapp/broadcast'
     | '/_authenticated/generate/'
     | '/_authenticated/whatsapp/'
   fileRoutesById: FileRoutesById
@@ -621,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGenerateIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp/broadcast': {
+      id: '/_authenticated/whatsapp/broadcast'
+      path: '/whatsapp/broadcast'
+      fullPath: '/whatsapp/broadcast'
+      preLoaderRoute: typeof AuthenticatedWhatsappBroadcastRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/generate/whatsapp': {
       id: '/_authenticated/generate/whatsapp'
       path: '/generate/whatsapp'
@@ -674,6 +694,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGenerateImageRoute: typeof AuthenticatedGenerateImageRoute
   AuthenticatedGenerateInstagramRoute: typeof AuthenticatedGenerateInstagramRoute
   AuthenticatedGenerateWhatsappRoute: typeof AuthenticatedGenerateWhatsappRoute
+  AuthenticatedWhatsappBroadcastRoute: typeof AuthenticatedWhatsappBroadcastRoute
   AuthenticatedGenerateIndexRoute: typeof AuthenticatedGenerateIndexRoute
   AuthenticatedWhatsappIndexRoute: typeof AuthenticatedWhatsappIndexRoute
 }
@@ -693,6 +714,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGenerateImageRoute: AuthenticatedGenerateImageRoute,
   AuthenticatedGenerateInstagramRoute: AuthenticatedGenerateInstagramRoute,
   AuthenticatedGenerateWhatsappRoute: AuthenticatedGenerateWhatsappRoute,
+  AuthenticatedWhatsappBroadcastRoute: AuthenticatedWhatsappBroadcastRoute,
   AuthenticatedGenerateIndexRoute: AuthenticatedGenerateIndexRoute,
   AuthenticatedWhatsappIndexRoute: AuthenticatedWhatsappIndexRoute,
 }
