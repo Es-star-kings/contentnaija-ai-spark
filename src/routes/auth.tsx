@@ -34,23 +34,29 @@ function AuthPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
+  function savePostLoginRedirect(): string {
+    const pendingInvite = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite") : null;
+    const redirectPath = pendingInvite ? `/invite/${pendingInvite}` : "/dashboard";
+    if (typeof window !== "undefined") sessionStorage.setItem("post_login_redirect", redirectPath);
+    return redirectPath;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const pendingInvite = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite") : null;
-      const redirectPath = pendingInvite ? `/invite/${pendingInvite}` : "/dashboard";
+      const redirectPath = savePostLoginRedirect();
       if (mode === "register") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}${redirectPath}`,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: { full_name: fullName },
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email to verify.");
+        toast.success("Account created! Welcome 🎉");
         navigate({ to: redirectPath });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -68,14 +74,14 @@ function AuthPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     try {
-      const pendingInvite = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite") : null;
-      const redirectPath = pendingInvite ? `/invite/${pendingInvite}` : "/dashboard";
+      savePostLoginRedirect();
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + redirectPath,
+        redirect_uri: `${window.location.origin}/auth/callback`,
       });
       if (result.error) throw result.error;
       if (result.redirected) return;
-      navigate({ to: redirectPath });
+      // Popup / web-message flow: session already set — route through callback to resolve destination.
+      navigate({ to: "/auth/callback" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setGoogleLoading(false);
