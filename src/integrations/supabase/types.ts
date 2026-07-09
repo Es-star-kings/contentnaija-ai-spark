@@ -135,6 +135,48 @@ export type Database = {
           },
         ]
       }
+      payment_history: {
+        Row: {
+          amount_kobo: number
+          billing_cycle: string | null
+          channel: string | null
+          created_at: string
+          currency: string
+          id: string
+          paystack_reference: string | null
+          raw: Json | null
+          status: string
+          tier: Database["public"]["Enums"]["plan_tier"] | null
+          user_id: string
+        }
+        Insert: {
+          amount_kobo: number
+          billing_cycle?: string | null
+          channel?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          paystack_reference?: string | null
+          raw?: Json | null
+          status: string
+          tier?: Database["public"]["Enums"]["plan_tier"] | null
+          user_id: string
+        }
+        Update: {
+          amount_kobo?: number
+          billing_cycle?: string | null
+          channel?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          paystack_reference?: string | null
+          raw?: Json | null
+          status?: string
+          tier?: Database["public"]["Enums"]["plan_tier"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_brand_id: string | null
@@ -241,6 +283,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          features: Json
+          monthly_generation_quota: number
+          monthly_price_kobo: number
+          name: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          yearly_price_kobo: number
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          monthly_generation_quota: number
+          monthly_price_kobo?: number
+          name: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          yearly_price_kobo?: number
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          monthly_generation_quota?: number
+          monthly_price_kobo?: number
+          name?: string
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          yearly_price_kobo?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          granted_by_admin: boolean
+          id: string
+          paystack_customer_code: string | null
+          paystack_email_token: string | null
+          paystack_subscription_code: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          granted_by_admin?: boolean
+          id?: string
+          paystack_customer_code?: string | null
+          paystack_email_token?: string | null
+          paystack_subscription_code?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          granted_by_admin?: boolean
+          id?: string
+          paystack_customer_code?: string | null
+          paystack_email_token?: string | null
+          paystack_subscription_code?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_credits: {
+        Row: {
+          created_at: string
+          generations_used: number
+          id: string
+          period_month: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generations_used?: number
+          id?: string
+          period_month: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generations_used?: number
+          id?: string
+          period_month?: string
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -369,6 +519,14 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: string }
+      consume_generation_credit: {
+        Args: { _user_id: string }
+        Returns: {
+          quota: number
+          tier: Database["public"]["Enums"]["plan_tier"]
+          used: number
+        }[]
+      }
       create_workspace_with_owner: {
         Args: { _name: string }
         Returns: {
@@ -384,6 +542,11 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      current_period_month: { Args: never; Returns: string }
+      get_active_tier: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["plan_tier"]
       }
       has_role: {
         Args: {
@@ -403,6 +566,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      plan_tier: "free" | "pro" | "agency"
+      subscription_status:
+        | "active"
+        | "cancelled"
+        | "past_due"
+        | "trialing"
+        | "expired"
       workspace_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
@@ -532,6 +702,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      plan_tier: ["free", "pro", "agency"],
+      subscription_status: [
+        "active",
+        "cancelled",
+        "past_due",
+        "trialing",
+        "expired",
+      ],
       workspace_role: ["owner", "admin", "member"],
     },
   },
