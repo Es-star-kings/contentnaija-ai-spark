@@ -46,25 +46,61 @@ export async function chatCompletion(opts: {
     },
   };
   if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
+  const payload = JSON.stringify(body);
 
-  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${key}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const MAX_ATTEMPTS = 4;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000);
+    try {
+      const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("Gemini rate limit reached. Please try again in a moment.");
-    if (res.status === 401 || res.status === 403) throw new Error("Invalid GEMINI_API_KEY.");
-    throw new Error(`Gemini error ${res.status}: ${text.slice(0, 300)}`);
+      if (res.status === 429 || res.status >= 500) {
+        lastErr = new Error(`AI upstream ${res.status}`);
+        if (attempt < MAX_ATTEMPTS) {
+          const wait = 1000 * Math.pow(2, attempt - 1) + Math.random() * 400; // 1s,2s,4s
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+        throw new Error(
+          res.status === 429
+            ? "Our AI is a bit busy right now — please try again in a moment."
+            : "The AI service is temporarily unavailable. Please try again shortly.",
+        );
+      }
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) throw new Error("AI service configuration error. Please contact support.");
+        throw new Error("We couldn't generate that just now. Please try again.");
+      }
+
+      const data = (await res.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts.map((p) => p.text ?? "").join("");
+      if (!text.trim()) throw new Error("AI returned an empty response. Please try again.");
+      return text;
+    } catch (err) {
+      clearTimeout(timeout);
+      lastErr = err;
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const isNetwork = err instanceof TypeError;
+      if ((isAbort || isNetwork) && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+        continue;
+      }
+      if (isAbort) throw new Error("The AI took too long to respond. Please try again.");
+      throw err instanceof Error ? err : new Error("We couldn't generate that just now. Please try again.");
+    }
   }
-
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  return parts.map((p) => p.text ?? "").join("");
+  throw lastErr instanceof Error ? lastErr : new Error("We couldn't generate that just now.");
 }
 
 /**
