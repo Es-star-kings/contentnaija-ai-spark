@@ -70,22 +70,26 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    setGoogleLoading(true);
-    try {
-      savePostLoginRedirect();
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/callback`,
-      });
-      if (result.error) throw result.error;
-      if (result.redirected) return;
-      // Popup / web-message flow: session already set — route through callback to resolve destination.
-      navigate({ to: "/auth/callback" });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
-      setGoogleLoading(false);
-    }
+   async function handleGoogle() {
+  setGoogleLoading(true);
+
+  try {
+    savePostLoginRedirect();
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw error;
+
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : "Google sign in failed");
+    setGoogleLoading(false);
   }
+   }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
