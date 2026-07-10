@@ -10,10 +10,10 @@ export const Route = createFileRoute("/pricing")({
       { name: "description", content: "Simple pricing for Nigerian brands. Start free with 20 generations a month. Upgrade for unlimited captions, WhatsApp, flyers and images." },
       { property: "og:title", content: "Pricing — ContentNaija AI" },
       { property: "og:description", content: "Simple, naira-friendly plans for Nigerian small businesses and agencies." },
-      { property: "og:url", content: "https://contentnaija-ai-spark.lovable.app/pricing" },
+      { property: "og:url", content: "https://contentnaija-ai-spark.vercel.app/pricing" },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "canonical", href: "https://contentnaija-ai-spark.lovable.app/pricing" }],
+    links: [{ rel: "canonical", href: "https://contentnaija-ai-spark.vercel.app/pricing" }],
     scripts: [{
       type: "application/ld+json",
       children: JSON.stringify({
