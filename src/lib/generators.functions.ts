@@ -2,47 +2,98 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { chatCompletion, generateImageBytes } from "./ai-gateway.server";
-
-export const FREE_MONTHLY_LIMIT = 20;
-
-const UNLIMITED_EMAILS = new Set<string>([
-  "kingsleyadesina1@gmail.com",
-]);
-
-export function planForClaims(claims: any): { name: string; limit: number | null } {
-  const email = (claims?.email ?? "").toString().toLowerCase();
-  if (email && UNLIMITED_EMAILS.has(email)) {
-    return { name: "Agency", limit: null };
-  }
-  return { name: "Free", limit: FREE_MONTHLY_LIMIT };
-}
+import { createClient } from "@supabase/supabase-js";
 
 // ---------- Shared helpers ----------
-
-function monthStartISO() {
-  const d = new Date();
-  d.setUTCDate(1);
-  d.setUTCHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-async function assertWithinLimit(supabase: any, userId: string, claims: any) {
-  const plan = planForClaims(claims);
-  const { count } = await supabase
+async function saveGeneratedContent({
+  supabase,
+  userId,
+  generatorType,
+  brandId,
+  inputs,
+  output,
+}: {
+  supabase: any;
+  userId: string;
+  generatorType: string;
+  brandId: string | null;
+  inputs: unknown;
+  output: unknown;
+}) {
+  const { data, error } = await supabase
     .from("generated_content")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", monthStartISO());
-  const used = count ?? 0;
-  if (plan.limit !== null && used >= plan.limit) {
-    throw new Error(`${plan.name} plan limit reached (${plan.limit}/month). Upgrade to keep generating.`);
+    .insert({
+      user_id: userId,
+      generator_type: generatorType,
+      brand_id: brandId,
+      inputs: inputs as any,
+      output: output as any,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Failed to save generated content:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      generatorType,
+      userId,
+    });
+
+    throw new Error(
+      `Generated content could not be saved: ${error.message}`,
+    );
   }
-  return { used, limit: plan.limit, planName: plan.name };
+
+  return data;
 }
 
-function remainingFrom(used: number, limit: number | null): number | null {
-  if (limit === null) return null;
-  return Math.max(0, limit - used - 1);
+
+async function consumeGenerationCredit(
+  supabase: any,
+  userId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "consume_generation_credit",
+    {
+      _user_id: userId,
+    },
+  );
+
+  if (error) {
+    if (
+      error.message.includes("quota_exceeded") ||
+      error.code === "P0001"
+    ) {
+      throw new Error(
+        "Monthly generation limit reached. Upgrade your plan to continue.",
+      );
+    }
+
+    console.error("Failed to consume generation credit:", error);
+    throw new Error(
+      `Unable to check generation limit: ${error.message}`,
+    );
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+
+  return {
+    tier: result?.tier,
+    used: result?.used ?? 0,
+    quota: result?.quota ?? 0,
+  };
+}
+
+
+function remainingFrom(
+  used: number,
+  quota: number | null,
+): number | null {
+  if (quota === null || quota < 0) return null;
+  return Math.max(0, quota - used);
 }
 
 function parseJSON<T>(raw: string): T {
@@ -101,7 +152,10 @@ export const generateCaption = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CaptionInput.parse(input))
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
@@ -125,14 +179,15 @@ Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
     const parsed = parseJSON<CaptionOutput>(raw);
     if (!Array.isArray(parsed.captions)) throw new Error("AI returned an unexpected shape.");
 
-    await supabase.from("generated_content").insert({
-      user_id: userId,
-      generator_type: "instagram_caption",
-      brand_id: brandId,
-      inputs: data as any,
-      output: parsed as any,
-    });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+  await saveGeneratedContent({
+    supabase,
+    userId,
+    generatorType: "instagram_caption",
+    brandId,
+    inputs: data,
+    output: parsed,
+  });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // ---------- WhatsApp campaign ----------
@@ -155,7 +210,10 @@ export const generateWhatsApp = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
@@ -181,14 +239,15 @@ Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
     const parsed = parseJSON<WhatsAppOutput>(raw);
     if (!Array.isArray(parsed.messages)) throw new Error("AI returned an unexpected shape.");
 
-    await supabase.from("generated_content").insert({
-      user_id: userId,
-      generator_type: "whatsapp_campaign",
-      brand_id: brandId,
-      inputs: data as any,
-      output: parsed as any,
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "whatsapp_campaign",
+      brandId,
+      inputs: data,
+      output: parsed,
     });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // ---------- Flyer copy ----------
@@ -214,7 +273,10 @@ export const generateFlyer = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => FlyerInput.parse(input))
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
@@ -239,14 +301,15 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
     const parsed = parseJSON<FlyerOutput>(raw);
     if (!parsed.headline) throw new Error("AI returned an unexpected shape.");
 
-    await supabase.from("generated_content").insert({
-      user_id: userId,
-      generator_type: "flyer_copy",
-      brand_id: brandId,
-      inputs: data as any,
-      output: parsed as any,
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "flyer_copy",
+      brandId,
+      inputs: data,
+      output: parsed,
     });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // ---------- Content calendar ----------
@@ -273,7 +336,10 @@ export const generateCalendar = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CalendarInput.parse(input))
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
@@ -293,14 +359,15 @@ Return JSON exactly:
     const parsed = parseJSON<CalendarOutput>(raw);
     if (!Array.isArray(parsed.plan)) throw new Error("AI returned an unexpected shape.");
 
-    await supabase.from("generated_content").insert({
-      user_id: userId,
-      generator_type: "content_calendar",
-      brand_id: brandId,
-      inputs: data as any,
-      output: parsed as any,
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "content_calendar",
+      brandId,
+      inputs: data,
+      output: parsed,
     });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // ---------- Image generation ----------
@@ -319,7 +386,10 @@ export const generateImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ImageInput.parse(input))
   .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const brandHint = brand?.business_name
@@ -351,15 +421,16 @@ export const generateImage = createServerFn({ method: "POST" })
 
     const output = { url: signed.signedUrl, path: filename, prompt: finalPrompt };
 
-    await supabase.from("generated_content").insert({
-      user_id: userId,
-      generator_type: "image",
-      brand_id: brandId,
-      inputs: data as any,
-      output: output as any,
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "image",
+      brandId,
+      inputs: data,
+      output,
     });
 
-    return { ...output, remaining: remainingFrom(used, limit) };
+    return { ...output, remaining: remainingFrom(used, quota) };
   });
 
 const SignInput = z.object({ path: z.string().min(1) });
@@ -375,22 +446,67 @@ export const signImage = createServerFn({ method: "POST" })
   });
 
 // ---------- Dashboard / history ----------
-
 export const getDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const plan = planForClaims(context.claims);
-    const [{ count: monthlyCount }, { count: totalCount }, recent] = await Promise.all([
-      supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStartISO()),
-      supabase.from("generated_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
-      supabase.from("generated_content").select("id, generator_type, output, created_at, favorited").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+
+    const currentMonth = new Date();
+    currentMonth.setUTCDate(1);
+    currentMonth.setUTCHours(0, 0, 0, 0);
+
+    const monthStart = currentMonth.toISOString().slice(0, 10);
+
+    const [
+      { data: subscription },
+      { data: usage },
+      { count: totalCount },
+      recent,
+    ] = await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select("tier, status")
+        .eq("user_id", userId)
+        .maybeSingle(),
+
+      supabase
+        .from("usage_credits")
+        .select("generations_used, tier")
+        .eq("user_id", userId)
+        .eq("period_month", monthStart)
+        .maybeSingle(),
+
+      supabase
+        .from("generated_content")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+
+      supabase
+        .from("generated_content")
+        .select(
+          "id, generator_type, output, created_at, favorited",
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
+
+    const activeTier = subscription?.tier ?? "free";
+
+    const { data: plan } = await supabase
+      .from("subscription_plans")
+      .select("name, monthly_generation_quota")
+      .eq("tier", activeTier)
+      .maybeSingle();
+
+    const monthlyUsed = usage?.generations_used ?? 0;
+    const monthlyLimit = plan?.monthly_generation_quota ?? 20;
+
     return {
-      monthlyCount: monthlyCount ?? 0,
+      monthlyCount: monthlyUsed,
       totalCount: totalCount ?? 0,
-      monthlyLimit: plan.limit,
-      planName: plan.name,
+      monthlyLimit,
+      planName: plan?.name ?? "Free",
       recent: recent.data ?? [],
     };
   });
@@ -460,13 +576,26 @@ export const getAnalytics = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    const plan = planForClaims(context.claims);
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("tier")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const activeTier = subscription?.tier ?? "free";
+
+    const { data: plan } = await supabase
+      .from("subscription_plans")
+      .select("name, monthly_generation_quota")
+      .eq("tier", activeTier)
+      .maybeSingle();
+
     return {
       total: all.length,
       last30,
       monthCount,
-      monthlyLimit: plan.limit,
-      planName: plan.name,
+      monthlyLimit: plan?.monthly_generation_quota ?? 20,
+      planName: plan?.name ?? "Free",
       favorites,
       days,
       generators,
@@ -1186,7 +1315,10 @@ export const generateWABroadcast = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WABroadcastInput.parse(input))
   .handler(async ({ data, context }): Promise<WABroadcastOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp broadcast messages for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1200,8 +1332,15 @@ Angles: (1) Direct offer (2) Story / social proof (3) Urgency / scarcity.
 Return JSON: {"messages":[{"label":"Direct offer","body":"..."}]}`;
     const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
     const parsed = parseJSON<WABroadcastOutput>(raw);
-    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_broadcast", brand_id: brandId, inputs: data as any, output: parsed as any });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "wa_broadcast",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // Status
@@ -1219,7 +1358,10 @@ export const generateWAStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAStatusInput.parse(input))
   .handler(async ({ data, context }): Promise<WAStatusOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write ${data.variations} high-converting WhatsApp Status updates for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Topic: ${data.topic}
@@ -1230,8 +1372,15 @@ Rules: Under 280 characters each. Punchy hook in first line. Every variation mus
 Return JSON: {"statuses":[{"body":"..."}]}`;
     const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
     const parsed = parseJSON<WAStatusOutput>(raw);
-    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_status", brand_id: brandId, inputs: data as any, output: parsed as any });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "wa_status",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // Follow-up
@@ -1247,7 +1396,10 @@ export const generateWAFollowUp = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAFollowUpInput.parse(input))
   .handler(async ({ data, context }): Promise<WAFollowUpOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp follow-up messages from ${data.businessName}.
 ${brandLine(brand)}Scenario: ${data.scenario}
@@ -1259,8 +1411,15 @@ Vary the openers across variations (do NOT all start with "Hi" or "Hello").
 Return JSON: {"messages":[{"label":"Soft nudge","body":"..."}]}`;
     const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
     const parsed = parseJSON<WAFollowUpOutput>(raw);
-    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_followup", brand_id: brandId, inputs: data as any, output: parsed as any });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "wa_followup",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // Promo
@@ -1278,7 +1437,10 @@ export const generateWAPromo = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAPromoInput.parse(input))
   .handler(async ({ data, context }): Promise<WAPromoOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 promotional WhatsApp marketing messages for ${data.businessName}.
 ${brandLine(brand)}Promo type: ${data.promoType}
@@ -1291,8 +1453,15 @@ Angles: (1) Excitement/launch hype (2) Value/savings-focused (3) Scarcity/deadli
 Return JSON: {"messages":[{"label":"Hype","body":"..."}]}`;
     const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
     const parsed = parseJSON<WAPromoOutput>(raw);
-    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_promo", brand_id: brandId, inputs: data as any, output: parsed as any });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "wa_promo",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
 // Holiday campaign — multi-channel
@@ -1322,7 +1491,10 @@ export const generateWAHoliday = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAHolidayInput.parse(input))
   .handler(async ({ data, context }): Promise<WAHolidayOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, limit } = await assertWithinLimit(supabase, userId, context.claims);
+    const { used, quota } = await consumeGenerationCredit(
+      supabase,
+      userId,
+    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Create a complete ${data.holiday} marketing campaign for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1342,6 +1514,243 @@ Return JSON exactly:
 Include 8-12 highly relevant hashtags mixing Nigerian and niche tags.`;
     const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
     const parsed = parseJSON<WAHolidayOutput>(raw);
-    await supabase.from("generated_content").insert({ user_id: userId, generator_type: "wa_holiday", brand_id: brandId, inputs: data as any, output: parsed as any });
-    return { ...parsed, remaining: remainingFrom(used, limit) };
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "wa_holiday",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
+    return { ...parsed, remaining: remainingFrom(used, quota) };
+  });
+
+
+  // ---------- Paystack subscriptions ----------
+
+const PaystackInitializeInput = z.object({
+  tier: z.enum(["pro", "agency"]),
+  billingCycle: z.enum(["monthly", "yearly"]),
+});
+
+export const initializePaystackPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => PaystackInitializeInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    if (!secretKey) {
+      throw new Error("PAYSTACK_SECRET_KEY is not configured.");
+    }
+
+    const { supabase, userId } = context;
+
+    // Get authenticated user's email
+    const { data: userData, error: userError } =
+      await supabase.auth.getUser();
+
+    if (userError || !userData.user?.email) {
+      throw new Error("Unable to get authenticated user email.");
+    }
+
+    const email = userData.user.email;
+
+    // Get the selected plan
+    const { data: plan, error: planError } = await supabase
+      .from("subscription_plans")
+      .select("tier, name, monthly_price_kobo, yearly_price_kobo")
+      .eq("tier", data.tier)
+      .single();
+
+    if (planError || !plan) {
+      throw new Error("Subscription plan not found.");
+    }
+
+    const amount =
+      data.billingCycle === "monthly"
+        ? plan.monthly_price_kobo
+        : plan.yearly_price_kobo;
+
+    if (!amount || amount <= 0) {
+      throw new Error("Invalid subscription amount.");
+    }
+
+    const reference = `CNAI-${userId.slice(0, 8)}-${Date.now()}`;
+
+    const appUrl =
+      process.env.APP_URL ||
+      process.env.VITE_APP_URL ||
+      "http://localhost:3000";
+
+    const response = await fetch(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          amount,
+          reference,
+          callback_url: `${appUrl}/payment/callback`,
+          metadata: {
+            user_id: userId,
+            tier: data.tier,
+            billing_cycle: data.billingCycle,
+          },
+        }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.status) {
+      console.error("Paystack initialization failed:", result);
+      throw new Error(
+        result.message || "Unable to initialize Paystack payment.",
+      );
+    }
+
+    return {
+      authorizationUrl: result.data.authorization_url,
+      accessCode: result.data.access_code,
+      reference: result.data.reference,
+    };
+  });
+
+// ---------- Verify Paystack payment ----------
+
+const PaystackVerifyInput = z.object({
+  reference: z.string().min(1),
+});
+
+export const verifyPaystackPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => PaystackVerifyInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    if (!secretKey) {
+      throw new Error("PAYSTACK_SECRET_KEY is not configured.");
+    }
+
+    const { supabase, userId } = context;
+
+    // Verify the transaction with Paystack
+    const response = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.status) {
+      throw new Error(
+        result.message || "Unable to verify Paystack payment.",
+      );
+    }
+
+    const transaction = result.data;
+
+    // Payment must be successful
+    if (transaction.status !== "success") {
+      throw new Error("Payment was not successful.");
+    }
+
+    // Prevent a payment reference from being used for another user
+    if (transaction.metadata?.user_id !== userId) {
+      throw new Error("Payment does not belong to the authenticated user.");
+    }
+
+    const tier = transaction.metadata?.tier;
+    const billingCycle = transaction.metadata?.billing_cycle;
+
+    if (!["pro", "agency"].includes(tier)) {
+      throw new Error("Invalid subscription tier.");
+    }
+
+    if (!["monthly", "yearly"].includes(billingCycle)) {
+      throw new Error("Invalid billing cycle.");
+    }
+
+    // Calculate subscription expiration
+    const periodEnd = new Date();
+
+    if (billingCycle === "monthly") {
+      periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
+    } else {
+      periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
+    }
+
+    // Upgrade subscription
+    const { error: subscriptionError } = await supabase
+      .from("subscriptions")
+      .upsert(
+        {
+          user_id: userId,
+          tier,
+          status: "active",
+          billing_cycle: billingCycle,
+          current_period_end: periodEnd.toISOString(),
+          cancel_at_period_end: false,
+        },
+        {
+          onConflict: "user_id",
+        },
+      );
+
+    if (subscriptionError) {
+      console.error(
+        "Failed to update subscription:",
+        subscriptionError,
+      );
+
+      throw new Error(
+        `Payment succeeded but subscription update failed: ${subscriptionError.message}`,
+      );
+    }
+
+    // Save payment history
+    const { error: historyError } = await supabase
+      .from("payment_history")
+      .upsert(
+        {
+          user_id: userId,
+          paystack_reference: transaction.reference,
+          amount_kobo: transaction.amount,
+          currency: transaction.currency || "NGN",
+          status: "success",
+          tier,
+          billing_cycle: billingCycle,
+          channel: transaction.channel || null,
+          raw: transaction,
+        },
+        {
+          onConflict: "paystack_reference",
+        },
+      );
+
+    if (historyError) {
+      console.error(
+        "Failed to save payment history:",
+        historyError,
+      );
+    }
+
+    return {
+      success: true,
+      tier,
+      billingCycle,
+      amount: transaction.amount,
+      reference: transaction.reference,
+      periodEnd: periodEnd.toISOString(),
+    };
   });
