@@ -1599,6 +1599,7 @@ export const initializePaystackPayment = createServerFn({ method: "POST" })
             user_id: userId,
             tier: data.tier,
             billing_cycle: data.billingCycle,
+            amount,
           },
         }),
       },
@@ -1637,10 +1638,10 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
     }
 
     const { supabase, userId } = context;
+    const reference = data.reference.trim();
 
-    // Verify the transaction with Paystack
     const response = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`,
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
         method: "GET",
         headers: {
@@ -1650,38 +1651,56 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
       },
     );
 
-    const result = await response.json();
+    let result: any;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("The payment verification response was invalid.");
+    }
 
-    if (!response.ok || !result.status) {
+    if (!response.ok || !result?.status) {
       throw new Error(
-        result.message || "Unable to verify Paystack payment.",
+        result?.message || "Unable to verify Paystack payment.",
       );
     }
 
     const transaction = result.data;
 
-    // Payment must be successful
+    if (!transaction) {
+      throw new Error("Paystack did not return transaction details.");
+    }
+
     if (transaction.status !== "success") {
       throw new Error("Payment was not successful.");
     }
 
-    // Prevent a payment reference from being used for another user
+    if (transaction.reference !== reference) {
+      throw new Error("The payment reference did not match the verified transaction.");
+    }
+
     if (transaction.metadata?.user_id !== userId) {
       throw new Error("Payment does not belong to the authenticated user.");
     }
 
     const tier = transaction.metadata?.tier;
     const billingCycle = transaction.metadata?.billing_cycle;
+    const expectedAmount = transaction.metadata?.amount;
 
-    if (!["pro", "agency"].includes(tier)) {
+    if (!['pro', 'agency'].includes(tier)) {
       throw new Error("Invalid subscription tier.");
     }
 
-    if (!["monthly", "yearly"].includes(billingCycle)) {
+    if (!['monthly', 'yearly'].includes(billingCycle)) {
       throw new Error("Invalid billing cycle.");
     }
 
-    // Calculate subscription expiration
+    if (
+      typeof expectedAmount === "number" &&
+      transaction.amount !== expectedAmount
+    ) {
+      throw new Error("The payment amount did not match the selected plan.");
+    }
+
     const periodEnd = new Date();
 
     if (billingCycle === "monthly") {
@@ -1690,7 +1709,29 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
       periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
     }
 
-    // Upgrade subscription
+    const { data: existingPayment, error: existingPaymentError } = await supabase
+      .from("payment_history")
+      .select("id, status")
+      .eq("paystack_reference", reference)
+      .maybeSingle();
+
+    if (existingPaymentError) {
+      console.error("Failed to check payment history:", existingPaymentError);
+      throw new Error("Unable to verify the payment state right now.");
+    }
+
+    if (existingPayment?.status === "success") {
+      return {
+        success: true,
+        alreadyProcessed: true,
+        tier,
+        billingCycle,
+        amount: transaction.amount,
+        reference: transaction.reference,
+        periodEnd: periodEnd.toISOString(),
+      };
+    }
+
     const { error: subscriptionError } = await supabase
       .from("subscriptions")
       .upsert(
@@ -1708,17 +1749,12 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
       );
 
     if (subscriptionError) {
-      console.error(
-        "Failed to update subscription:",
-        subscriptionError,
-      );
-
+      console.error("Failed to update subscription:", subscriptionError);
       throw new Error(
         `Payment succeeded but subscription update failed: ${subscriptionError.message}`,
       );
     }
 
-    // Save payment history
     const { error: historyError } = await supabase
       .from("payment_history")
       .upsert(
@@ -1739,14 +1775,13 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
       );
 
     if (historyError) {
-      console.error(
-        "Failed to save payment history:",
-        historyError,
-      );
+      console.error("Failed to save payment history:", historyError);
+      throw new Error("Payment succeeded but the receipt could not be saved.");
     }
 
     return {
       success: true,
+      alreadyProcessed: false,
       tier,
       billingCycle,
       amount: transaction.amount,

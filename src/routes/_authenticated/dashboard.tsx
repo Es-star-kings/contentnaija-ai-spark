@@ -32,11 +32,18 @@ function Dashboard() {
           <h1 className="text-2xl font-bold sm:text-3xl">Welcome back 👋</h1>
           <p className="mt-1 text-sm text-muted-foreground">Let's create something today.</p>
         </div>
-        <Link to="/generate">
-          <Button className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Wand2 className="mr-2 h-4 w-4" /> New content
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/pricing">
+            <Button variant="outline">
+              Upgrade plan
+            </Button>
+          </Link>
+          <Link to="/generate">
+            <Button className="bg-gradient-primary text-primary-foreground shadow-elegant">
+              <Wand2 className="mr-2 h-4 w-4" /> New content
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

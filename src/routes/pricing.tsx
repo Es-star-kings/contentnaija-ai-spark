@@ -1,6 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { MarketingShell, CtaStrip } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
+import { initializePaystackPayment } from "@/lib/generators.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Check, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
@@ -34,26 +38,72 @@ export const Route = createFileRoute("/pricing")({
 
 const plans = [
   {
-    name: "Free", price: "₦0", period: "forever",
+    name: "Free",
+    tier: "free" as const,
+    monthlyPrice: "₦0",
+    yearlyPrice: "₦0",
+    period: "forever",
     tag: "For testing the waters",
     features: ["20 generations / month", "Instagram captions & WhatsApp broadcasts", "1 brand kit", "History & basic exports"],
-    ctaLabel: "Start free", highlight: false,
+    ctaLabel: "Start free",
+    highlight: false,
   },
   {
-    name: "Growth", price: "₦9,900", period: "/month",
+    name: "Pro",
+    tier: "pro" as const,
+    monthlyPrice: "₦9,900",
+    yearlyPrice: "₦99,000",
+    period: "/month",
     tag: "For serious solo creators",
     features: ["500 generations / month", "All generators (flyers, calendar, images)", "3 brand kits", "Scheduling & shareable links", "Priority AI queue"],
-    ctaLabel: "Start Growth", highlight: true,
+    ctaLabel: "Upgrade to Pro",
+    highlight: true,
   },
   {
-    name: "Agency", price: "₦29,900", period: "/month",
+    name: "Agency",
+    tier: "agency" as const,
+    monthlyPrice: "₦29,900",
+    yearlyPrice: "₦299,000",
+    period: "/month",
     tag: "For teams & agencies",
     features: ["Unlimited generations", "Unlimited brand kits", "Team workspaces & seats", "Client sharing", "Priority support"],
-    ctaLabel: "Talk to us", highlight: false,
+    ctaLabel: "Upgrade to Agency",
+    highlight: false,
   },
 ];
 
 function PricingPage() {
+  const navigate = useNavigate();
+  const startCheckout = useServerFn(initializePaystackPayment);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  const handleUpgrade = async (tier: "pro" | "agency") => {
+    if (tier === "free") {
+      navigate({ to: "/auth", search: { mode: "register" } });
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate({ to: "/auth", search: { mode: "register" } });
+      return;
+    }
+
+    try {
+      setCheckingOut(tier);
+      const result = await startCheckout({ data: { tier, billingCycle } });
+      if (result.authorizationUrl) {
+        window.location.assign(result.authorizationUrl);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "Unable to start payment.");
+    } finally {
+      setCheckingOut(null);
+    }
+  };
+
   return (
     <MarketingShell>
       <section className="mx-auto max-w-6xl px-4 pt-16 pb-8 sm:px-6 sm:pt-24">
@@ -65,21 +115,53 @@ function PricingPage() {
           <p className="mt-4 text-muted-foreground">Start free. Upgrade when your content is doing the work of a small team.</p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 flex justify-center">
+          <div className="inline-flex rounded-full border border-border bg-card p-1 shadow-card">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${billingCycle === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("yearly")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${billingCycle === "yearly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
           {plans.map((p) => (
             <div key={p.name} className={`rounded-2xl border p-6 shadow-card ${p.highlight ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
               {p.highlight && <span className="mb-3 inline-block rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">Most popular</span>}
               <h3 className="text-lg font-semibold">{p.name}</h3>
               <p className="text-xs text-muted-foreground">{p.tag}</p>
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-bold">{p.price}</span>
-                <span className="text-sm text-muted-foreground">{p.period}</span>
+                <span className="text-4xl font-bold">{billingCycle === "yearly" ? p.yearlyPrice : p.monthlyPrice}</span>
+                <span className="text-sm text-muted-foreground">{billingCycle === "yearly" ? "/year" : p.period}</span>
               </div>
-              <Link to="/auth" search={{ mode: "register" }} className="mt-6 block">
-                <Button className={`w-full ${p.highlight ? "bg-gradient-primary text-primary-foreground" : ""}`} variant={p.highlight ? "default" : "outline"}>
-                  {p.ctaLabel}
-                </Button>
-              </Link>
+              <div className="mt-6">
+                {p.tier === "free" ? (
+                  <Link to="/auth" search={{ mode: "register" }} className="block">
+                    <Button className={`w-full ${p.highlight ? "bg-gradient-primary text-primary-foreground" : ""}`} variant={p.highlight ? "default" : "outline"}>
+                      {p.ctaLabel}
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    className={`w-full ${p.highlight ? "bg-gradient-primary text-primary-foreground" : ""}`}
+                    variant={p.highlight ? "default" : "outline"}
+                    onClick={() => handleUpgrade(p.tier as "pro" | "agency")}
+                    disabled={checkingOut !== null}
+                  >
+                    {checkingOut === p.tier ? "Preparing checkout…" : p.ctaLabel}
+                  </Button>
+                )}
+              </div>
               <ul className="mt-6 space-y-2 text-sm">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
