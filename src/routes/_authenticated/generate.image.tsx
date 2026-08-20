@@ -6,6 +6,7 @@ import { joinFeatureWaitlist } from "@/lib/generators.functions";
 import { ArrowLeft, ImageIcon, Rocket, Bell, Check, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/generate/image")({
   head: () => ({ meta: [{ title: "AI Image Generator — Coming Soon | ContentNaija AI" }] }),
@@ -30,7 +31,7 @@ function ImageComingSoon() {
       setJoined(true);
       toast.success(r.already ? "You're already on the list!" : "You're on the waitlist 🎉");
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not join"),
+    onError: (e) => toast.error(getUserFriendlyErrorText(e)),
   });
 
   return (

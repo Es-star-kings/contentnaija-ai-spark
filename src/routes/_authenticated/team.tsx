@@ -15,6 +15,7 @@ import {
 } from "@/lib/generators.functions";
 import { Users, Plus, Star, Copy, Trash2, UserPlus, Building, Check } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/team")({
   component: TeamPage,
@@ -43,7 +44,7 @@ function TeamPage() {
       setNewName("");
       await setActive({ data: { id: (ws as any).id } });
       await wsQ.refetch();
-    } catch (e: any) { toast.error(e.message ?? "Failed"); }
+    } catch (e: unknown) { toast.error(getUserFriendlyErrorText(e)); }
   }
 
   return (
@@ -127,7 +128,7 @@ function MembersPanel({ workspaceId, workspaceName, canManage }: { workspaceId: 
       toast.success("Invite link copied");
       setEmail(""); setOpen(false);
       await q.refetch();
-    } catch (e: any) { toast.error(e.message ?? "Failed"); }
+    } catch (e: unknown) { toast.error(getUserFriendlyErrorText(e)); }
   }
 
   const members = q.data?.members ?? [];

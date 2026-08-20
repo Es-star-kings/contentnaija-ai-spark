@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateWAPromo, type WAPromoOutput } from "@/lib/generators.functions";
 import { Wand2, Loader2, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/user-errors";
 import { GeneratorShell, GeneratorEmpty, GeneratorSkeleton } from "@/components/generators/GeneratorShell";
 import { WAMessageCard, WA_TONES } from "@/components/generators/WAMessageCard";
 
@@ -35,7 +36,10 @@ function Page() {
   const m = useMutation({
     mutationFn: () => fn({ data: { businessName, product, promoType, offer, tone, includePidgin } }),
     onSuccess: (r) => { setResult(r); qc.invalidateQueries({ queryKey: ["history"] }); qc.invalidateQueries({ queryKey: ["analytics"] }); toast.success("Promotional messages ready!"); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => {
+      const friendly = getUserFriendlyError(e);
+      toast.error(`${friendly.title}: ${friendly.message}`, friendly.retryable ? { action: { label: "Try again", onClick: () => m.mutate() } } : undefined);
+    },
   });
 
   function submit(e: React.FormEvent) {

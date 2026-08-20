@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { listBrands, createBrand, updateBrand, deleteBrand, setActiveBrand } from "@/lib/generators.functions";
 import { Plus, Star, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/brands")({
   component: BrandsPage,
@@ -54,7 +55,7 @@ function BrandsPage() {
       await refetch();
       router.invalidate();
     } catch (e: any) {
-      toast.error(e.message ?? "Failed");
+      toast.error(getUserFriendlyErrorText(e));
     } finally {
       setSaving(false);
     }

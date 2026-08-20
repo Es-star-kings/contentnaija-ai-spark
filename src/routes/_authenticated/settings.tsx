@@ -11,6 +11,7 @@ import { getProfile, updateProfile } from "@/lib/generators.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, Palette, ShieldCheck, KeyRound, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — ContentNaija AI" }] }),
@@ -56,7 +57,7 @@ function SettingsPage() {
       qc.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Settings saved");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to save"),
+    onError: (err) => toast.error(getUserFriendlyErrorText(err)),
   });
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -185,7 +186,7 @@ function AccountSecuritySection({ currentEmail }: { currentEmail: string }) {
       toast.success("Confirmation sent — check both inboxes to complete the change");
       setNewEmail("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update email");
+      toast.error(getUserFriendlyErrorText(err));
     } finally { setEmailBusy(false); }
   }
 
@@ -200,7 +201,7 @@ function AccountSecuritySection({ currentEmail }: { currentEmail: string }) {
       toast.success("Password updated");
       setNewPassword(""); setConfirmPassword("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update password");
+      toast.error(getUserFriendlyErrorText(err));
     } finally { setPwBusy(false); }
   }
 

@@ -6,16 +6,20 @@ import { previewText, exportPDF, exportCalendarICS } from "@/lib/exporters";
 import { Button } from "@/components/ui/button";
 import { Download, Calendar as CalIcon, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/s/$token")({
   head: () => ({ meta: [{ title: "Shared content — ContentNaija AI" }, { name: "robots", content: "noindex" }] }),
-  errorComponent: ({ error }) => (
-    <div className="mx-auto max-w-xl p-10 text-center">
-      <h1 className="text-xl font-semibold">Link unavailable</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+  errorComponent: ({ error }) => {
+    const friendly = getUserFriendlyError(error);
+    return (
+    <div className="mx-auto max-w-xl p-10 text-center" role="alert">
+      <h1 className="text-xl font-semibold">{friendly.title}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{friendly.message}</p>
       <Link to="/" className="mt-4 inline-flex text-primary hover:underline">Back home</Link>
     </div>
-  ),
+    );
+  },
   notFoundComponent: () => <div className="p-10 text-center">Not found</div>,
   component: SharedPage,
 });

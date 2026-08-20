@@ -8,6 +8,7 @@ import { getInvitation, acceptInvitation } from "@/lib/generators.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, LogIn } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/invite/$token")({
   component: InvitePage,
@@ -36,7 +37,7 @@ function InvitePage() {
       toast.success("Joined workspace");
       navigate({ to: "/team" });
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to accept");
+      toast.error(getUserFriendlyErrorText(e));
     } finally { setBusy(false); }
   }
 

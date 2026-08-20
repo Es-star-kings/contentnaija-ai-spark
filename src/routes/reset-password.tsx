@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -49,7 +50,7 @@ function ResetPasswordPage() {
       toast.success("Password updated — signing you in");
       navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update password");
+      toast.error(getUserFriendlyErrorText(err));
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateWABroadcast, type WABroadcastOutput } from "@/lib/generators.functions";
 import { Wand2, Loader2, Radio } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/user-errors";
 import { GeneratorShell, GeneratorEmpty, GeneratorSkeleton } from "@/components/generators/GeneratorShell";
 import { WAMessageCard, WA_TONES } from "@/components/generators/WAMessageCard";
 
@@ -42,7 +43,10 @@ function Page() {
       qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success("Broadcasts ready!");
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to generate"),
+    onError: (e) => {
+      const friendly = getUserFriendlyError(e);
+      toast.error(`${friendly.title}: ${friendly.message}`, friendly.retryable ? { action: { label: "Try again", onClick: () => m.mutate() } } : undefined);
+    },
   });
 
   function submit(e: React.FormEvent) {

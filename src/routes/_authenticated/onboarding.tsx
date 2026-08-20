@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 import { Sparkles, ArrowRight, ArrowLeft, Check, Palette, Building2, User } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -78,7 +79,7 @@ function OnboardingPage() {
       toast.success("You're all set! Let's create something.");
       navigate({ to: "/dashboard" });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not finish setup"),
+    onError: (e: unknown) => toast.error(getUserFriendlyErrorText(e)),
   });
 
   const skipMut = useMutation({

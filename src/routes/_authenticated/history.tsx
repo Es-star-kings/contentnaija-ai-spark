@@ -9,6 +9,7 @@ import { listHistory, toggleFavorite, deleteHistoryItem, createShareLink, update
 import { previewText, exportPDF, exportCalendarICS } from "@/lib/exporters";
 import { History as HistoryIcon, Star, Trash2, Copy, Search, Check, Download, Calendar as CalIcon, Share2, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 
 export const Route = createFileRoute("/_authenticated/history")({
@@ -88,7 +89,7 @@ function HistoryPage() {
       await navigator.clipboard.writeText(url);
       toast.success("Share link copied", { description: url });
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not create share link");
+      toast.error(getUserFriendlyErrorText(e));
     }
   }
 
@@ -104,7 +105,7 @@ function HistoryPage() {
       qc.invalidateQueries({ queryKey: ["schedule"] });
       toast.success("Scheduled");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not schedule");
+      toast.error(getUserFriendlyErrorText(e));
     }
   }
 

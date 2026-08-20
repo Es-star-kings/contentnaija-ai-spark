@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAdminOverview, getMyRoles, setUserRole } from "@/lib/generators.functions";
 import { Shield, Users, FileText, Building2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -51,7 +52,7 @@ function AdminPage() {
       toast.success(makeAdmin ? "Admin granted" : "Admin revoked");
       await dataQ.refetch();
     } catch (e: any) {
-      toast.error(e.message ?? "Failed");
+      toast.error(getUserFriendlyErrorText(e));
     }
   }
 

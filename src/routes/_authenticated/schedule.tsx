@@ -10,6 +10,7 @@ import { listScheduled, updateSchedule, setContentStatus } from "@/lib/generator
 import { previewText } from "@/lib/exporters";
 import { Calendar as CalIcon, ChevronLeft, ChevronRight, FileEdit, Clock, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/_authenticated/schedule")({
   head: () => ({ meta: [{ title: "Schedule — ContentNaija AI" }] }),
@@ -106,7 +107,7 @@ function SchedulePage() {
       toast.success("Saved");
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not save"),
+    onError: (e: unknown) => toast.error(getUserFriendlyErrorText(e)),
   });
 
   const statMut = useMutation({

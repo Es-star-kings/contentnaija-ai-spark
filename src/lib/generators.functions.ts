@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { chatCompletion, generateImageBytes } from "./ai-gateway.server";
-import { createClient } from "@supabase/supabase-js";
+import { AIError, chatCompletion, generateImageBytes } from "./ai-gateway.server";
 
 // ---------- Shared helpers ----------
 async function saveGeneratedContent({
@@ -41,9 +40,12 @@ async function saveGeneratedContent({
       generatorType,
       userId,
     });
+    await refundGenerationCredit(supabase, userId);
 
-    throw new Error(
-      `Generated content could not be saved: ${error.message}`,
+    throw new AIError(
+      "UNKNOWN_ERROR",
+      "Your content was generated, but we couldn't save it. Please try again.",
+      true,
     );
   }
 
@@ -67,14 +69,18 @@ async function consumeGenerationCredit(
       error.message.includes("quota_exceeded") ||
       error.code === "P0001"
     ) {
-      throw new Error(
-        "Monthly generation limit reached. Upgrade your plan to continue.",
+      throw new AIError(
+        "QUOTA_EXCEEDED",
+        "The AI service has reached its usage limit. Please try again later.",
+        false,
       );
     }
 
-    console.error("Failed to consume generation credit:", error);
-    throw new Error(
-      `Unable to check generation limit: ${error.message}`,
+    console.error("Failed to consume generation credit", { code: error.code, userId });
+    throw new AIError(
+      "UNKNOWN_ERROR",
+      "We couldn't check your generation limit. Please try again.",
+      true,
     );
   }
 
@@ -87,6 +93,13 @@ async function consumeGenerationCredit(
   };
 }
 
+async function refundGenerationCredit(supabase: any, userId: string): Promise<void> {
+  const { error } = await supabase.rpc("refund_generation_credit", { _user_id: userId });
+  if (error) {
+    console.error("Failed to refund generation credit", { code: error.code, userId });
+  }
+}
+
 
 function remainingFrom(
   used: number,
@@ -96,14 +109,86 @@ function remainingFrom(
   return Math.max(0, quota - used);
 }
 
-function parseJSON<T>(raw: string): T {
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error("AI returned an unparseable response. Please try again.");
-    return JSON.parse(m[0]) as T;
+function extractJson(raw: string): unknown {
+  const candidates = [raw.trim(), ...(raw.match(/```(?:json)?\s*([\s\S]*?)```/i)?.slice(1) ?? [])];
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try balanced JSON below when the model added text around the value.
+    }
   }
+
+  for (let start = 0; start < raw.length; start++) {
+    if (raw[start] !== "{" && raw[start] !== "[") continue;
+    const opening = raw[start];
+    const closing = opening === "{" ? "}" : "]";
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < raw.length; index++) {
+      const character = raw[index];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === '"') inString = false;
+        continue;
+      }
+      if (character === '"') {
+        inString = true;
+        continue;
+      }
+      if (character === opening) depth++;
+      if (character === closing) depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(raw.slice(start, index + 1));
+        } catch {
+          break;
+        }
+      }
+    }
+  }
+  throw new AIError("INVALID_RESPONSE", "We couldn't generate your content correctly. Please try again.", false);
+}
+
+async function generateStructured<T>({
+  generatorType,
+  messages,
+  schema,
+}: {
+  generatorType: string;
+  messages: Parameters<typeof chatCompletion>[0]["messages"];
+  schema: z.ZodType<T>;
+}): Promise<T> {
+  const startedAt = Date.now();
+  let lastError: AIError | null = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const retryInstruction = attempt === 2
+        ? "Return valid JSON only. Match the requested schema exactly. Do not include Markdown, explanations, or extra properties."
+        : "";
+      const raw = await chatCompletion({
+        messages: retryInstruction
+          ? [...messages, { role: "user", content: retryInstruction }]
+          : messages,
+        response_format: { type: "json_object" },
+      });
+      const result = schema.safeParse(extractJson(raw));
+      if (!result.success) {
+        throw new AIError("VALIDATION_ERROR", "We couldn't generate your content correctly. Please try again.", false);
+      }
+      console.info("AI generation succeeded", { generatorType, durationMs: Date.now() - startedAt, retryCount: attempt - 1 });
+      return result.data;
+    } catch (error) {
+      lastError = error instanceof AIError
+        ? error
+        : new AIError("UNKNOWN_ERROR", "We couldn't generate your content correctly. Please try again.", false);
+      if (lastError.code !== "INVALID_RESPONSE" && lastError.code !== "VALIDATION_ERROR") throw lastError;
+    }
+  }
+  console.warn("AI generation failed", { generatorType, durationMs: Date.now() - startedAt, retryCount: 1, errorCode: lastError?.code });
+  throw lastError ?? new AIError("INVALID_RESPONSE", "We couldn't generate your content correctly. Please try again.", false);
 }
 
 async function loadBrand(supabase: any, userId: string): Promise<{ data: any; brandId: string | null }> {
@@ -146,16 +231,15 @@ const CaptionInput = z.object({
 });
 
 export type CaptionOutput = { captions: Array<{ text: string; hashtags: string[] }> };
+const CaptionSchema: z.ZodType<CaptionOutput> = z.object({
+  captions: z.array(z.object({ text: z.string().min(1), hashtags: z.array(z.string()) })).min(1),
+});
 
 export const generateCaption = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CaptionInput.parse(input))
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
@@ -172,12 +256,12 @@ Use tasteful emojis. Avoid clichés. Sound like a real person, not a brand templ
 
 Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
 
-    const raw = await chatCompletion({
+    const parsed = await generateStructured({
+      generatorType: "instagram_caption",
       messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
-      response_format: { type: "json_object" },
+      schema: CaptionSchema,
     });
-    const parsed = parseJSON<CaptionOutput>(raw);
-    if (!Array.isArray(parsed.captions)) throw new Error("AI returned an unexpected shape.");
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
 
   await saveGeneratedContent({
     supabase,
@@ -204,16 +288,15 @@ const WhatsAppInput = z.object({
 export type WhatsAppOutput = {
   messages: Array<{ label: string; body: string }>;
 };
+const WhatsAppSchema: z.ZodType<WhatsAppOutput> = z.object({
+  messages: z.array(z.object({ label: z.string().min(1), body: z.string().min(1) })).min(1),
+});
 
 export const generateWhatsApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
@@ -232,12 +315,12 @@ Rules:
 
 Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
 
-    const raw = await chatCompletion({
+    const parsed = await generateStructured({
+      generatorType: "whatsapp_campaign",
       messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
-      response_format: { type: "json_object" },
+      schema: WhatsAppSchema,
     });
-    const parsed = parseJSON<WhatsAppOutput>(raw);
-    if (!Array.isArray(parsed.messages)) throw new Error("AI returned an unexpected shape.");
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
 
     await saveGeneratedContent({
       supabase,
@@ -267,16 +350,20 @@ export type FlyerOutput = {
   footer: string;
   colorSuggestion: string;
 };
+const FlyerSchema: z.ZodType<FlyerOutput> = z.object({
+  headline: z.string().min(1),
+  subheadline: z.string().min(1),
+  bullets: z.array(z.string().min(1)).min(1),
+  cta: z.string().min(1),
+  footer: z.string().min(1),
+  colorSuggestion: z.string().min(1),
+});
 
 export const generateFlyer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => FlyerInput.parse(input))
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
@@ -294,12 +381,12 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
   "colorSuggestion": "two-color palette in hex e.g. #10B981 + #0F172A"
 }`;
 
-    const raw = await chatCompletion({
+    const parsed = await generateStructured({
+      generatorType: "flyer_copy",
       messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
-      response_format: { type: "json_object" },
+      schema: FlyerSchema,
     });
-    const parsed = parseJSON<FlyerOutput>(raw);
-    if (!parsed.headline) throw new Error("AI returned an unexpected shape.");
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
 
     await saveGeneratedContent({
       supabase,
@@ -330,16 +417,25 @@ export type CalendarOutput = {
     posts: Array<{ time: string; format: string; hook: string; caption: string }>;
   }>;
 };
+const CalendarSchema: z.ZodType<CalendarOutput> = z.object({
+  plan: z.array(z.object({
+    day: z.number(),
+    date_label: z.string().min(1),
+    theme: z.string().min(1),
+    posts: z.array(z.object({
+      time: z.string().min(1),
+      format: z.string().min(1),
+      hook: z.string().min(1),
+      caption: z.string().min(1),
+    })).min(1),
+  })).min(1),
+});
 
 export const generateCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CalendarInput.parse(input))
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
@@ -352,12 +448,12 @@ Reference Nigerian context (timing — e.g. lunch break, Friday vibes, weekend c
 Return JSON exactly:
 {"plan":[{"day":1,"date_label":"Mon","theme":"Pillar / theme of the day","posts":[{"time":"9:00 AM","format":"Reel / Carousel / Story","hook":"first-line hook","caption":"full caption draft, 2-4 lines"}]}]}`;
 
-    const raw = await chatCompletion({
+    const parsed = await generateStructured({
+      generatorType: "content_calendar",
       messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
-      response_format: { type: "json_object" },
+      schema: CalendarSchema,
     });
-    const parsed = parseJSON<CalendarOutput>(raw);
-    if (!Array.isArray(parsed.plan)) throw new Error("AI returned an unexpected shape.");
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
 
     await saveGeneratedContent({
       supabase,
@@ -386,10 +482,6 @@ export const generateImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ImageInput.parse(input))
   .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const brandHint = brand?.business_name
@@ -420,6 +512,7 @@ export const generateImage = createServerFn({ method: "POST" })
     if (signErr || !signed) throw new Error("Could not create signed URL.");
 
     const output = { url: signed.signedUrl, path: filename, prompt: finalPrompt };
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
 
     await saveGeneratedContent({
       supabase,
@@ -545,7 +638,8 @@ export const getAnalytics = createServerFn({ method: "GET" })
     const sinceMs = since.getTime();
     let last30 = 0;
     let monthCount = 0;
-    const monthStart = new Date(monthStartISO()).getTime();
+    const now = new Date();
+    const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
     const byType: Record<string, number> = {};
     const toneCount: Record<string, number> = {};
     let favorites = 0;
@@ -1310,15 +1404,12 @@ const WABroadcastInput = z.object({
   includePidgin: z.boolean().default(false),
 });
 export type WABroadcastOutput = { messages: Array<{ label: string; body: string }> };
+const WABroadcastSchema: z.ZodType<WABroadcastOutput> = WhatsAppSchema;
 export const generateWABroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WABroadcastInput.parse(input))
   .handler(async ({ data, context }): Promise<WABroadcastOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp broadcast messages for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1330,8 +1421,8 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 Rules: WhatsApp formatting (*bold* with asterisks, short paragraphs, line breaks). Under 600 chars each.
 Angles: (1) Direct offer (2) Story / social proof (3) Urgency / scarcity.
 Return JSON: {"messages":[{"label":"Direct offer","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
-    const parsed = parseJSON<WABroadcastOutput>(raw);
+    const parsed = await generateStructured({ generatorType: "wa_broadcast", messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], schema: WABroadcastSchema });
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     await saveGeneratedContent({
       supabase,
       userId,
@@ -1353,15 +1444,12 @@ const WAStatusInput = z.object({
   includePidgin: z.boolean().default(false),
 });
 export type WAStatusOutput = { statuses: Array<{ body: string }> };
+const WAStatusSchema: z.ZodType<WAStatusOutput> = z.object({ statuses: z.array(z.object({ body: z.string().min(1) })).min(1) });
 export const generateWAStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WAStatusInput.parse(input))
   .handler(async ({ data, context }): Promise<WAStatusOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write ${data.variations} high-converting WhatsApp Status updates for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Topic: ${data.topic}
@@ -1370,8 +1458,8 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 
 Rules: Under 280 characters each. Punchy hook in first line. Every variation must open differently.
 Return JSON: {"statuses":[{"body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
-    const parsed = parseJSON<WAStatusOutput>(raw);
+    const parsed = await generateStructured({ generatorType: "wa_status", messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], schema: WAStatusSchema });
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     await saveGeneratedContent({
       supabase,
       userId,
@@ -1391,15 +1479,12 @@ const WAFollowUpInput = z.object({
   tone: z.enum(["Friendly", "Professional", "Persuasive"]).default("Friendly"),
 });
 export type WAFollowUpOutput = { messages: Array<{ label: string; body: string }> };
+const WAFollowUpSchema: z.ZodType<WAFollowUpOutput> = WhatsAppSchema;
 export const generateWAFollowUp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WAFollowUpInput.parse(input))
   .handler(async ({ data, context }): Promise<WAFollowUpOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp follow-up messages from ${data.businessName}.
 ${brandLine(brand)}Scenario: ${data.scenario}
@@ -1409,8 +1494,8 @@ ${WA_TONE_GUIDE(data.tone)}
 Rules: Under 500 chars. Sound human, respectful — not pushy. Give a next step.
 Vary the openers across variations (do NOT all start with "Hi" or "Hello").
 Return JSON: {"messages":[{"label":"Soft nudge","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
-    const parsed = parseJSON<WAFollowUpOutput>(raw);
+    const parsed = await generateStructured({ generatorType: "wa_followup", messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], schema: WAFollowUpSchema });
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     await saveGeneratedContent({
       supabase,
       userId,
@@ -1432,15 +1517,12 @@ const WAPromoInput = z.object({
   includePidgin: z.boolean().default(false),
 });
 export type WAPromoOutput = { messages: Array<{ label: string; body: string }> };
+const WAPromoSchema: z.ZodType<WAPromoOutput> = WhatsAppSchema;
 export const generateWAPromo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WAPromoInput.parse(input))
   .handler(async ({ data, context }): Promise<WAPromoOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 promotional WhatsApp marketing messages for ${data.businessName}.
 ${brandLine(brand)}Promo type: ${data.promoType}
@@ -1451,8 +1533,8 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 Rules: WhatsApp formatting (*bold*). Include emojis. Under 550 chars each.
 Angles: (1) Excitement/launch hype (2) Value/savings-focused (3) Scarcity/deadline.
 Return JSON: {"messages":[{"label":"Hype","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
-    const parsed = parseJSON<WAPromoOutput>(raw);
+    const parsed = await generateStructured({ generatorType: "wa_promo", messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], schema: WAPromoSchema });
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     await saveGeneratedContent({
       supabase,
       userId,
@@ -1486,15 +1568,19 @@ export type WAHolidayOutput = {
   cta: string;
   hashtags: string[];
 };
+const WAHolidaySchema: z.ZodType<WAHolidayOutput> = z.object({
+  whatsapp_broadcast: z.string().min(1),
+  whatsapp_status: z.string().min(1),
+  instagram_caption: z.string().min(1),
+  facebook_caption: z.string().min(1),
+  cta: z.string().min(1),
+  hashtags: z.array(z.string()).min(1),
+});
 export const generateWAHoliday = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => WAHolidayInput.parse(input))
   .handler(async ({ data, context }): Promise<WAHolidayOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Create a complete ${data.holiday} marketing campaign for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1512,8 +1598,8 @@ Return JSON exactly:
   "hashtags": ["#tag1","#tag2"]
 }
 Include 8-12 highly relevant hashtags mixing Nigerian and niche tags.`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
-    const parsed = parseJSON<WAHolidayOutput>(raw);
+    const parsed = await generateStructured({ generatorType: "wa_holiday", messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], schema: WAHolidaySchema });
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     await saveGeneratedContent({
       supabase,
       userId,

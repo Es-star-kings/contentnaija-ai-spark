@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { verifyPaystackPayment } from "@/lib/generators.functions";
+import { getUserFriendlyError } from "@/lib/user-errors";
 
 export const Route = createFileRoute("/payment/callback")({
   component: PaymentCallbackPage,
@@ -47,13 +48,10 @@ function PaymentCallbackPage() {
         }
       } catch (error) {
         console.error(error);
+        const friendly = getUserFriendlyError(error);
 
         setStatus("error");
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to verify payment.",
-        );
+        setMessage(friendly.message);
       }
     };
 

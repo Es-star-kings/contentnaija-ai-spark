@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateFlyer, type FlyerOutput } from "@/lib/generators.functions";
 import { Wand2, Copy, Check, Loader2, FileImage } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/user-errors";
 import { GeneratorShell, GeneratorEmpty, GeneratorSkeleton } from "@/components/generators/GeneratorShell";
 
 export const Route = createFileRoute("/_authenticated/generate/flyer")({
@@ -37,7 +38,10 @@ function FlyerGen() {
       qc.invalidateQueries({ queryKey: ["history"] });
       toast.success("Flyer copy ready!");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to generate"),
+    onError: (err) => {
+      const friendly = getUserFriendlyError(err);
+      toast.error(`${friendly.title}: ${friendly.message}`, friendly.retryable ? { action: { label: "Try again", onClick: () => mutation.mutate() } } : undefined);
+    },
   });
 
   function copyAll() {

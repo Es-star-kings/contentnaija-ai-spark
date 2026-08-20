@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserFriendlyErrorText } from "@/lib/user-errors";
 
 const searchSchema = z.object({
   mode: z.enum(["login", "register"]).optional(),
@@ -64,7 +65,7 @@ function AuthPage() {
         navigate({ to: redirectPath });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(getUserFriendlyErrorText(err));
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ function AuthPage() {
     if (error) throw error;
 
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : "Google sign in failed");
+    toast.error(getUserFriendlyErrorText(err));
     setGoogleLoading(false);
   }
    }
