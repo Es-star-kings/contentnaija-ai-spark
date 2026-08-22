@@ -135,6 +135,30 @@ export type Database = {
           },
         ]
       }
+      generation_credit_refunds: {
+        Row: {
+          created_at: string
+          id: string
+          operation_key: string
+          period_month: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operation_key: string
+          period_month: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operation_key?: string
+          period_month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_history: {
         Row: {
           amount_kobo: number
@@ -174,6 +198,102 @@ export type Database = {
           status?: string
           tier?: Database["public"]["Enums"]["plan_tier"] | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          access_code: string | null
+          amount_kobo: number
+          authorization_url: string | null
+          billing_cycle: string
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          paystack_customer_code: string | null
+          paystack_subscription_code: string | null
+          paystack_transaction_id: string | null
+          processed_at: string | null
+          reference: string
+          status: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_code?: string | null
+          amount_kobo: number
+          authorization_url?: string | null
+          billing_cycle: string
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          paystack_transaction_id?: string | null
+          processed_at?: string | null
+          reference: string
+          status?: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_code?: string | null
+          amount_kobo?: number
+          authorization_url?: string | null
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
+          paystack_transaction_id?: string | null
+          processed_at?: string | null
+          reference?: string
+          status?: string
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_webhook_events: {
+        Row: {
+          created_at: string
+          event_key: string
+          event_type: string
+          id: string
+          payload_hash: string | null
+          processed_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          event_type: string
+          id?: string
+          payload_hash?: string | null
+          processed_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          event_type?: string
+          id?: string
+          payload_hash?: string | null
+          processed_at?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -519,6 +639,23 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: string }
+      apply_successful_payment: {
+        Args: {
+          _channel: string
+          _paid_at: string
+          _paystack_customer_code: string
+          _paystack_transaction_id: string
+          _raw: Json
+          _reference: string
+        }
+        Returns: {
+          already_processed: boolean
+          amount_kobo: number
+          billing_cycle: string
+          period_end: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+        }[]
+      }
       consume_generation_credit: {
         Args: { _user_id: string }
         Returns: {
@@ -557,6 +694,10 @@ export type Database = {
       }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      refund_generation_credit: {
+        Args: { _operation_key: string; _user_id: string }
         Returns: boolean
       }
       workspace_role_of: {
