@@ -1753,7 +1753,7 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
         _channel: transaction.channel ?? null,
         _paid_at: transaction.paid_at ?? new Date().toISOString(),
         _raw: transaction,
-      },
+      } as any,
     );
 
     if (applyError) {
