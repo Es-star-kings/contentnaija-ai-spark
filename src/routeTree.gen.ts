@@ -9,88 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BlogRouteImport } from './routes/blog'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TemplatesRouteImport } from './routes/templates'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
-import { Route as AuthenticatedBrandsRouteImport } from './routes/_authenticated/brands'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as ForIndustryRouteImport } from './routes/for.$industry'
-import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
-import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates.$slug'
-import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
-import { Route as AuthenticatedGenerateCalendarRouteImport } from './routes/_authenticated/generate.calendar'
-import { Route as AuthenticatedGenerateFlyerRouteImport } from './routes/_authenticated/generate.flyer'
-import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authenticated/generate.image'
-import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
-import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
+import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ForIndustryRouteImport } from './routes/for.$industry'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedBrandsRouteImport } from './routes/_authenticated/brands'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedWhatsappIndexRouteImport } from './routes/_authenticated/whatsapp.index'
-import { Route as AuthenticatedWhatsappBroadcastRouteImport } from './routes/_authenticated/whatsapp.broadcast'
-import { Route as AuthenticatedWhatsappFollowupRouteImport } from './routes/_authenticated/whatsapp.followup'
-import { Route as AuthenticatedWhatsappHolidayRouteImport } from './routes/_authenticated/whatsapp.holiday'
-import { Route as AuthenticatedWhatsappPromoRouteImport } from './routes/_authenticated/whatsapp.promo'
+import { Route as AuthenticatedGenerateIndexRouteImport } from './routes/_authenticated/generate.index'
 import { Route as AuthenticatedWhatsappStatusRouteImport } from './routes/_authenticated/whatsapp.status'
+import { Route as AuthenticatedWhatsappPromoRouteImport } from './routes/_authenticated/whatsapp.promo'
+import { Route as AuthenticatedWhatsappHolidayRouteImport } from './routes/_authenticated/whatsapp.holiday'
+import { Route as AuthenticatedWhatsappFollowupRouteImport } from './routes/_authenticated/whatsapp.followup'
+import { Route as AuthenticatedWhatsappBroadcastRouteImport } from './routes/_authenticated/whatsapp.broadcast'
+import { Route as AuthenticatedGenerateWhatsappRouteImport } from './routes/_authenticated/generate.whatsapp'
+import { Route as AuthenticatedGenerateInstagramRouteImport } from './routes/_authenticated/generate.instagram'
+import { Route as AuthenticatedGenerateImageRouteImport } from './routes/_authenticated/generate.image'
+import { Route as AuthenticatedGenerateFlyerRouteImport } from './routes/_authenticated/generate.flyer'
+import { Route as AuthenticatedGenerateCalendarRouteImport } from './routes/_authenticated/generate.calendar'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -98,84 +59,48 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TemplatesRoute = TemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBrandsRoute = AuthenticatedBrandsRouteImport.update({
-  id: '/brands',
-  path: '/brands',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
-  id: '/schedule',
-  path: '/schedule',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
-} as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
-} as any)
-const ForIndustryRoute = ForIndustryRouteImport.update({
-  id: '/for/$industry',
-  path: '/for/$industry',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InviteTokenRoute = InviteTokenRouteImport.update({
-  id: '/invite/$token',
-  path: '/invite/$token',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
-  id: '/payment/callback',
-  path: '/payment/callback',
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
-const STokenRoute = STokenRouteImport.update({
-  id: '/s/$token',
-  path: '/s/$token',
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
@@ -183,64 +108,97 @@ const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => TemplatesRoute,
 } as any)
-const AuthenticatedGenerateIndexRoute =
-  AuthenticatedGenerateIndexRouteImport.update({
-    id: '/generate/',
-    path: '/generate/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGenerateCalendarRoute =
-  AuthenticatedGenerateCalendarRouteImport.update({
-    id: '/generate/calendar',
-    path: '/generate/calendar',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGenerateFlyerRoute =
-  AuthenticatedGenerateFlyerRouteImport.update({
-    id: '/generate/flyer',
-    path: '/generate/flyer',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGenerateImageRoute =
-  AuthenticatedGenerateImageRouteImport.update({
-    id: '/generate/image',
-    path: '/generate/image',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGenerateInstagramRoute =
-  AuthenticatedGenerateInstagramRouteImport.update({
-    id: '/generate/instagram',
-    path: '/generate/instagram',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGenerateWhatsappRoute =
-  AuthenticatedGenerateWhatsappRouteImport.update({
-    id: '/generate/whatsapp',
-    path: '/generate/whatsapp',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
+  id: '/payment/callback',
+  path: '/payment/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForIndustryRoute = ForIndustryRouteImport.update({
+  id: '/for/$industry',
+  path: '/for/$industry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBrandsRoute = AuthenticatedBrandsRouteImport.update({
+  id: '/brands',
+  path: '/brands',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWhatsappIndexRoute =
   AuthenticatedWhatsappIndexRouteImport.update({
     id: '/whatsapp/',
     path: '/whatsapp/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedWhatsappBroadcastRoute =
-  AuthenticatedWhatsappBroadcastRouteImport.update({
-    id: '/whatsapp/broadcast',
-    path: '/whatsapp/broadcast',
+const AuthenticatedGenerateIndexRoute =
+  AuthenticatedGenerateIndexRouteImport.update({
+    id: '/generate/',
+    path: '/generate/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedWhatsappFollowupRoute =
-  AuthenticatedWhatsappFollowupRouteImport.update({
-    id: '/whatsapp/followup',
-    path: '/whatsapp/followup',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedWhatsappHolidayRoute =
-  AuthenticatedWhatsappHolidayRouteImport.update({
-    id: '/whatsapp/holiday',
-    path: '/whatsapp/holiday',
+const AuthenticatedWhatsappStatusRoute =
+  AuthenticatedWhatsappStatusRouteImport.update({
+    id: '/whatsapp/status',
+    path: '/whatsapp/status',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedWhatsappPromoRoute =
@@ -249,10 +207,52 @@ const AuthenticatedWhatsappPromoRoute =
     path: '/whatsapp/promo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedWhatsappStatusRoute =
-  AuthenticatedWhatsappStatusRouteImport.update({
-    id: '/whatsapp/status',
-    path: '/whatsapp/status',
+const AuthenticatedWhatsappHolidayRoute =
+  AuthenticatedWhatsappHolidayRouteImport.update({
+    id: '/whatsapp/holiday',
+    path: '/whatsapp/holiday',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappFollowupRoute =
+  AuthenticatedWhatsappFollowupRouteImport.update({
+    id: '/whatsapp/followup',
+    path: '/whatsapp/followup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappBroadcastRoute =
+  AuthenticatedWhatsappBroadcastRouteImport.update({
+    id: '/whatsapp/broadcast',
+    path: '/whatsapp/broadcast',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateWhatsappRoute =
+  AuthenticatedGenerateWhatsappRouteImport.update({
+    id: '/generate/whatsapp',
+    path: '/generate/whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateInstagramRoute =
+  AuthenticatedGenerateInstagramRouteImport.update({
+    id: '/generate/instagram',
+    path: '/generate/instagram',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateImageRoute =
+  AuthenticatedGenerateImageRouteImport.update({
+    id: '/generate/image',
+    path: '/generate/image',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateFlyerRoute =
+  AuthenticatedGenerateFlyerRouteImport.update({
+    id: '/generate/flyer',
+    path: '/generate/flyer',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGenerateCalendarRoute =
+  AuthenticatedGenerateCalendarRouteImport.update({
+    id: '/generate/calendar',
+    path: '/generate/calendar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -522,67 +522,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -592,116 +536,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/templates': {
-      id: '/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof TemplatesRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/analytics': {
-      id: '/_authenticated/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/brands': {
-      id: '/_authenticated/brands'
-      path: '/brands'
-      fullPath: '/brands'
-      preLoaderRoute: typeof AuthenticatedBrandsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/history': {
-      id: '/_authenticated/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/schedule': {
-      id: '/_authenticated/schedule'
-      path: '/schedule'
-      fullPath: '/schedule'
-      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/team': {
-      id: '/_authenticated/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof AuthenticatedTeamRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/for/$industry': {
-      id: '/for/$industry'
-      path: '/for/$industry'
-      fullPath: '/for/$industry'
-      preLoaderRoute: typeof ForIndustryRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invite/$token': {
-      id: '/invite/$token'
-      path: '/invite/$token'
-      fullPath: '/invite/$token'
-      preLoaderRoute: typeof InviteTokenRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/payment/callback': {
-      id: '/payment/callback'
-      path: '/payment/callback'
-      fullPath: '/payment/callback'
-      preLoaderRoute: typeof PaymentCallbackRouteImport
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/s/$token': {
-      id: '/s/$token'
-      path: '/s/$token'
-      fullPath: '/s/$token'
-      preLoaderRoute: typeof STokenRouteImport
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/templates/$slug': {
@@ -711,46 +606,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesSlugRouteImport
       parentRoute: typeof TemplatesRoute
     }
-    '/_authenticated/generate/': {
-      id: '/_authenticated/generate/'
-      path: '/generate'
-      fullPath: '/generate/'
-      preLoaderRoute: typeof AuthenticatedGenerateIndexRouteImport
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/callback': {
+      id: '/payment/callback'
+      path: '/payment/callback'
+      fullPath: '/payment/callback'
+      preLoaderRoute: typeof PaymentCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/$industry': {
+      id: '/for/$industry'
+      path: '/for/$industry'
+      fullPath: '/for/$industry'
+      preLoaderRoute: typeof ForIndustryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/generate/calendar': {
-      id: '/_authenticated/generate/calendar'
-      path: '/generate/calendar'
-      fullPath: '/generate/calendar'
-      preLoaderRoute: typeof AuthenticatedGenerateCalendarRouteImport
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/generate/flyer': {
-      id: '/_authenticated/generate/flyer'
-      path: '/generate/flyer'
-      fullPath: '/generate/flyer'
-      preLoaderRoute: typeof AuthenticatedGenerateFlyerRouteImport
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/generate/image': {
-      id: '/_authenticated/generate/image'
-      path: '/generate/image'
-      fullPath: '/generate/image'
-      preLoaderRoute: typeof AuthenticatedGenerateImageRouteImport
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/generate/instagram': {
-      id: '/_authenticated/generate/instagram'
-      path: '/generate/instagram'
-      fullPath: '/generate/instagram'
-      preLoaderRoute: typeof AuthenticatedGenerateInstagramRouteImport
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/generate/whatsapp': {
-      id: '/_authenticated/generate/whatsapp'
-      path: '/generate/whatsapp'
-      fullPath: '/generate/whatsapp'
-      preLoaderRoute: typeof AuthenticatedGenerateWhatsappRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/brands': {
+      id: '/_authenticated/brands'
+      path: '/brands'
+      fullPath: '/brands'
+      preLoaderRoute: typeof AuthenticatedBrandsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp/': {
@@ -760,25 +718,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/whatsapp/broadcast': {
-      id: '/_authenticated/whatsapp/broadcast'
-      path: '/whatsapp/broadcast'
-      fullPath: '/whatsapp/broadcast'
-      preLoaderRoute: typeof AuthenticatedWhatsappBroadcastRouteImport
+    '/_authenticated/generate/': {
+      id: '/_authenticated/generate/'
+      path: '/generate'
+      fullPath: '/generate/'
+      preLoaderRoute: typeof AuthenticatedGenerateIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/whatsapp/followup': {
-      id: '/_authenticated/whatsapp/followup'
-      path: '/whatsapp/followup'
-      fullPath: '/whatsapp/followup'
-      preLoaderRoute: typeof AuthenticatedWhatsappFollowupRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/whatsapp/holiday': {
-      id: '/_authenticated/whatsapp/holiday'
-      path: '/whatsapp/holiday'
-      fullPath: '/whatsapp/holiday'
-      preLoaderRoute: typeof AuthenticatedWhatsappHolidayRouteImport
+    '/_authenticated/whatsapp/status': {
+      id: '/_authenticated/whatsapp/status'
+      path: '/whatsapp/status'
+      fullPath: '/whatsapp/status'
+      preLoaderRoute: typeof AuthenticatedWhatsappStatusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp/promo': {
@@ -788,11 +739,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappPromoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/whatsapp/status': {
-      id: '/_authenticated/whatsapp/status'
-      path: '/whatsapp/status'
-      fullPath: '/whatsapp/status'
-      preLoaderRoute: typeof AuthenticatedWhatsappStatusRouteImport
+    '/_authenticated/whatsapp/holiday': {
+      id: '/_authenticated/whatsapp/holiday'
+      path: '/whatsapp/holiday'
+      fullPath: '/whatsapp/holiday'
+      preLoaderRoute: typeof AuthenticatedWhatsappHolidayRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/followup': {
+      id: '/_authenticated/whatsapp/followup'
+      path: '/whatsapp/followup'
+      fullPath: '/whatsapp/followup'
+      preLoaderRoute: typeof AuthenticatedWhatsappFollowupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp/broadcast': {
+      id: '/_authenticated/whatsapp/broadcast'
+      path: '/whatsapp/broadcast'
+      fullPath: '/whatsapp/broadcast'
+      preLoaderRoute: typeof AuthenticatedWhatsappBroadcastRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/whatsapp': {
+      id: '/_authenticated/generate/whatsapp'
+      path: '/generate/whatsapp'
+      fullPath: '/generate/whatsapp'
+      preLoaderRoute: typeof AuthenticatedGenerateWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/instagram': {
+      id: '/_authenticated/generate/instagram'
+      path: '/generate/instagram'
+      fullPath: '/generate/instagram'
+      preLoaderRoute: typeof AuthenticatedGenerateInstagramRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/image': {
+      id: '/_authenticated/generate/image'
+      path: '/generate/image'
+      fullPath: '/generate/image'
+      preLoaderRoute: typeof AuthenticatedGenerateImageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/flyer': {
+      id: '/_authenticated/generate/flyer'
+      path: '/generate/flyer'
+      fullPath: '/generate/flyer'
+      preLoaderRoute: typeof AuthenticatedGenerateFlyerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/generate/calendar': {
+      id: '/_authenticated/generate/calendar'
+      path: '/generate/calendar'
+      fullPath: '/generate/calendar'
+      preLoaderRoute: typeof AuthenticatedGenerateCalendarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }

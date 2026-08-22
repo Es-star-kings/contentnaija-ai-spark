@@ -79,11 +79,6 @@ function PricingPage() {
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
 
   const handleUpgrade = async (tier: "pro" | "agency") => {
-    if (tier === "free") {
-      navigate({ to: "/auth", search: { mode: "register" } });
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate({ to: "/auth", search: { mode: "register" } });
