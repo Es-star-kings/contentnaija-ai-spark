@@ -527,13 +527,6 @@ export type Database = {
           used: number
         }[]
       }
-      refund_generation_credit: {
-        Args: {
-          _user_id: string
-        }
-        Returns: undefined
-      }
-      
       create_workspace_with_owner: {
         Args: { _name: string }
         Returns: {
