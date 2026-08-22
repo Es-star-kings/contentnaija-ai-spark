@@ -1534,29 +1534,41 @@ const PaystackInitializeInput = z.object({
   billingCycle: z.enum(["monthly", "yearly"]),
 });
 
+function resolveAppUrl(): string {
+  const configured = process.env.APP_URL || process.env.VITE_APP_URL;
+  if (configured) return configured.replace(/\/+$/, "");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Payments are temporarily unavailable. Please try again later.");
+  }
+  return "http://localhost:8080";
+}
+
+function newPaymentReference(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `CNAI-${hex}`;
+}
+
 export const initializePaystackPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PaystackInitializeInput.parse(input))
   .handler(async ({ data, context }) => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
-
     if (!secretKey) {
-      throw new Error("PAYSTACK_SECRET_KEY is not configured.");
+      console.error("PAYSTACK_SECRET_KEY is not configured.");
+      throw new Error("Payments are temporarily unavailable. Please try again later.");
     }
 
     const { supabase, userId } = context;
 
-    // Get authenticated user's email
-    const { data: userData, error: userError } =
-      await supabase.auth.getUser();
-
+    const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user?.email) {
-      throw new Error("Unable to get authenticated user email.");
+      throw new Error("Unable to start checkout. Please sign in again.");
     }
-
     const email = userData.user.email;
 
-    // Get the selected plan
+    // Amount is resolved ONLY from the plans table — never from the client.
     const { data: plan, error: planError } = await supabase
       .from("subscription_plans")
       .select("tier, name, monthly_price_kobo, yearly_price_kobo")
@@ -1564,28 +1576,43 @@ export const initializePaystackPayment = createServerFn({ method: "POST" })
       .single();
 
     if (planError || !plan) {
-      throw new Error("Subscription plan not found.");
+      throw new Error("That plan is not available right now.");
     }
 
     const amount =
-      data.billingCycle === "monthly"
-        ? plan.monthly_price_kobo
-        : plan.yearly_price_kobo;
+      data.billingCycle === "monthly" ? plan.monthly_price_kobo : plan.yearly_price_kobo;
 
     if (!amount || amount <= 0) {
-      throw new Error("Invalid subscription amount.");
+      throw new Error("That plan is not available right now.");
     }
 
-    const reference = `CNAI-${userId.slice(0, 8)}-${Date.now()}`;
+    const appUrl = resolveAppUrl();
+    const reference = newPaymentReference();
 
-    const appUrl =
-      process.env.APP_URL ||
-      process.env.VITE_APP_URL ||
-      "http://localhost:3000";
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const response = await fetch(
-      "https://api.paystack.co/transaction/initialize",
-      {
+    // Create the local pending transaction BEFORE talking to Paystack.
+    const { error: txError } = await supabaseAdmin
+      .from("payment_transactions")
+      .insert({
+        user_id: userId,
+        reference,
+        tier: data.tier,
+        billing_cycle: data.billingCycle,
+        amount_kobo: amount,
+        currency: "NGN",
+        status: "pending",
+        metadata: { plan_name: plan.name, email },
+      });
+
+    if (txError) {
+      console.error("Failed to create payment transaction:", txError);
+      throw new Error("Unable to start checkout right now. Please try again.");
+    }
+
+    let result: any;
+    try {
+      const response = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${secretKey}`,
@@ -1594,38 +1621,45 @@ export const initializePaystackPayment = createServerFn({ method: "POST" })
         body: JSON.stringify({
           email,
           amount,
+          currency: "NGN",
           reference,
           callback_url: `${appUrl}/payment/callback`,
-          metadata: {
-            user_id: userId,
-            tier: data.tier,
-            billing_cycle: data.billingCycle,
-            amount,
-          },
+          metadata: { user_id: userId, tier: data.tier, billing_cycle: data.billingCycle },
         }),
-      },
-    );
-
-    const result = await response.json();
-
-    if (!response.ok || !result.status) {
-      console.error("Paystack initialization failed:", result);
-      throw new Error(
-        result.message || "Unable to initialize Paystack payment.",
-      );
+      });
+      result = await response.json();
+      if (!response.ok || !result?.status || !result?.data?.authorization_url) {
+        throw new Error(result?.message || "initialize_failed");
+      }
+    } catch (error) {
+      console.error("Paystack initialization failed:", error);
+      await supabaseAdmin
+        .from("payment_transactions")
+        .update({ status: "failed", failure_reason: "initialization_failed" })
+        .eq("reference", reference);
+      throw new Error("We could not start your payment. Please try again.");
     }
 
+    await supabaseAdmin
+      .from("payment_transactions")
+      .update({
+        status: "processing",
+        authorization_url: result.data.authorization_url,
+        access_code: result.data.access_code ?? null,
+      })
+      .eq("reference", reference);
+
     return {
-      authorizationUrl: result.data.authorization_url,
-      accessCode: result.data.access_code,
-      reference: result.data.reference,
+      authorizationUrl: result.data.authorization_url as string,
+      accessCode: (result.data.access_code ?? null) as string | null,
+      reference,
     };
   });
 
 // ---------- Verify Paystack payment ----------
 
 const PaystackVerifyInput = z.object({
-  reference: z.string().min(1),
+  reference: z.string().min(1).max(120),
 });
 
 export const verifyPaystackPayment = createServerFn({ method: "POST" })
@@ -1633,160 +1667,109 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => PaystackVerifyInput.parse(input))
   .handler(async ({ data, context }) => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
-
     if (!secretKey) {
-      throw new Error("PAYSTACK_SECRET_KEY is not configured.");
+      console.error("PAYSTACK_SECRET_KEY is not configured.");
+      throw new Error("Payments are temporarily unavailable. Please try again later.");
     }
 
-    const { supabase, userId } = context;
+    const { userId } = context;
     const reference = data.reference.trim();
 
-    const response = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let result: any;
-    try {
-      result = await response.json();
-    } catch {
-      throw new Error("The payment verification response was invalid.");
-    }
-
-    if (!response.ok || !result?.status) {
-      throw new Error(
-        result?.message || "Unable to verify Paystack payment.",
-      );
-    }
-
-    const transaction = result.data;
-
-    if (!transaction) {
-      throw new Error("Paystack did not return transaction details.");
-    }
-
-    if (transaction.status !== "success") {
-      throw new Error("Payment was not successful.");
-    }
-
-    if (transaction.reference !== reference) {
-      throw new Error("The payment reference did not match the verified transaction.");
-    }
-
-    if (transaction.metadata?.user_id !== userId) {
-      throw new Error("Payment does not belong to the authenticated user.");
-    }
-
-    const tier = transaction.metadata?.tier;
-    const billingCycle = transaction.metadata?.billing_cycle;
-    const expectedAmount = transaction.metadata?.amount;
-
-    if (!['pro', 'agency'].includes(tier)) {
-      throw new Error("Invalid subscription tier.");
-    }
-
-    if (!['monthly', 'yearly'].includes(billingCycle)) {
-      throw new Error("Invalid billing cycle.");
-    }
-
-    if (
-      typeof expectedAmount === "number" &&
-      transaction.amount !== expectedAmount
-    ) {
-      throw new Error("The payment amount did not match the selected plan.");
-    }
-
-    const periodEnd = new Date();
-
-    if (billingCycle === "monthly") {
-      periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
-    } else {
-      periodEnd.setUTCFullYear(periodEnd.getUTCFullYear() + 1);
-    }
-
-    const { data: existingPayment, error: existingPaymentError } = await supabase
-      .from("payment_history")
-      .select("id, status")
-      .eq("paystack_reference", reference)
+    // 1. The reference must be one WE created, for THIS user.
+    const { data: localTx, error: localTxError } = await supabaseAdmin
+      .from("payment_transactions")
+      .select("id, user_id, reference, tier, billing_cycle, amount_kobo, currency, status")
+      .eq("reference", reference)
       .maybeSingle();
 
-    if (existingPaymentError) {
-      console.error("Failed to check payment history:", existingPaymentError);
-      throw new Error("Unable to verify the payment state right now.");
+    if (localTxError) {
+      console.error("Failed to load payment transaction:", localTxError);
+      throw new Error("We could not verify your payment right now. Please try again.");
     }
 
-    if (existingPayment?.status === "success") {
+    if (!localTx || localTx.user_id !== userId) {
+      throw new Error("We could not find that payment.");
+    }
+
+    if (localTx.status === "success") {
+      const { data: sub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("current_period_end")
+        .eq("user_id", userId)
+        .maybeSingle();
       return {
         success: true,
         alreadyProcessed: true,
-        tier,
-        billingCycle,
-        amount: transaction.amount,
-        reference: transaction.reference,
-        periodEnd: periodEnd.toISOString(),
+        tier: localTx.tier,
+        billingCycle: localTx.billing_cycle,
+        amount: localTx.amount_kobo,
+        reference: localTx.reference,
+        periodEnd: sub?.current_period_end ?? null,
       };
     }
 
-    const { error: subscriptionError } = await supabase
-      .from("subscriptions")
-      .upsert(
-        {
-          user_id: userId,
-          tier,
-          status: "active",
-          billing_cycle: billingCycle,
-          current_period_end: periodEnd.toISOString(),
-          cancel_at_period_end: false,
-        },
-        {
-          onConflict: "user_id",
-        },
+    // 2. Verify server-side with Paystack.
+    let result: any;
+    try {
+      const response = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        { method: "GET", headers: { Authorization: `Bearer ${secretKey}` } },
       );
-
-    if (subscriptionError) {
-      console.error("Failed to update subscription:", subscriptionError);
-      throw new Error(
-        `Payment succeeded but subscription update failed: ${subscriptionError.message}`,
-      );
+      result = await response.json();
+      if (!response.ok || !result?.status) {
+        throw new Error(result?.message || "verify_failed");
+      }
+    } catch (error) {
+      console.error("Paystack verification failed:", error);
+      throw new Error("We could not verify your payment right now. Please try again.");
     }
 
-    const { error: historyError } = await supabase
-      .from("payment_history")
-      .upsert(
-        {
-          user_id: userId,
-          paystack_reference: transaction.reference,
-          amount_kobo: transaction.amount,
-          currency: transaction.currency || "NGN",
-          status: "success",
-          tier,
-          billing_cycle: billingCycle,
-          channel: transaction.channel || null,
-          raw: transaction,
-        },
-        {
-          onConflict: "paystack_reference",
-        },
-      );
+    const transaction = result.data;
+    const fail = async (reason: string, userMessage: string) => {
+      await supabaseAdmin
+        .from("payment_transactions")
+        .update({ status: "failed", failure_reason: reason, processed_at: new Date().toISOString() })
+        .eq("id", localTx.id);
+      throw new Error(userMessage);
+    };
 
-    if (historyError) {
-      console.error("Failed to save payment history:", historyError);
-      throw new Error("Payment succeeded but the receipt could not be saved.");
+    if (!transaction) await fail("no_transaction", "Payment was not completed.");
+    if (transaction.status !== "success") await fail("not_successful", "Payment was not successful.");
+    if (transaction.reference !== reference) await fail("reference_mismatch", "Payment could not be matched.");
+    if ((transaction.currency || "").toUpperCase() !== "NGN") await fail("currency_mismatch", "Payment currency is not supported.");
+    if (Number(transaction.amount) !== Number(localTx.amount_kobo)) {
+      await fail("amount_mismatch", "The payment amount did not match the selected plan.");
     }
+
+    // 3. Entitlement is applied atomically & idempotently from LOCAL data only.
+    const { data: applied, error: applyError } = await supabaseAdmin.rpc(
+      "apply_successful_payment",
+      {
+        _reference: reference,
+        _paystack_transaction_id: transaction.id ? String(transaction.id) : null,
+        _paystack_customer_code: transaction.customer?.customer_code ?? null,
+        _channel: transaction.channel ?? null,
+        _paid_at: transaction.paid_at ?? new Date().toISOString(),
+        _raw: transaction,
+      },
+    );
+
+    if (applyError) {
+      console.error("Failed to apply payment:", applyError);
+      throw new Error("Your payment went through but activation failed. Please contact support.");
+    }
+
+    const row: any = Array.isArray(applied) ? applied[0] : applied;
 
     return {
       success: true,
-      alreadyProcessed: false,
-      tier,
-      billingCycle,
-      amount: transaction.amount,
-      reference: transaction.reference,
-      periodEnd: periodEnd.toISOString(),
+      alreadyProcessed: Boolean(row?.already_processed),
+      tier: row?.tier ?? localTx.tier,
+      billingCycle: row?.billing_cycle ?? localTx.billing_cycle,
+      amount: localTx.amount_kobo,
+      reference,
+      periodEnd: row?.period_end ?? null,
     };
   });
