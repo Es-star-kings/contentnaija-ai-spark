@@ -743,6 +743,24 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short" }).format(date);
+}
+
+function StatusBadge({ status }: { status: ContactMessageStatus }) {
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  return (
+    <Badge
+      variant={status === "unread" ? "default" : status === "archived" ? "outline" : "secondary"}
+      className="shrink-0"
+    >
+      {label}
+    </Badge>
+  );
+}
+
 function userInitials(user: AdminUser) {
   const value = user.full_name || user.email || "U";
   return value
