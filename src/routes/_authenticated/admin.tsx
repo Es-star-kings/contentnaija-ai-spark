@@ -395,7 +395,11 @@ function AdminPage() {
                     <EmptyState
                       icon={<Inbox />}
                       title={messageSearch ? "No messages found" : "Inbox is clear"}
-                      description={messageSearch ? "Try a different search." : "New contact messages will appear here."}
+                      description={
+                        messageSearch
+                          ? "Try a different search."
+                          : "New contact messages will appear here."
+                      }
                       className="min-h-64 px-6"
                     />
                   ) : (
@@ -413,12 +417,23 @@ function AdminPage() {
                             >
                               <span className="min-w-0">
                                 <span className="flex min-w-0 items-center gap-2">
-                                  {message.status === "unread" && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
-                                  <span className={`${message.status === "unread" ? "font-semibold" : "font-medium"} truncate text-sm`}>{message.name}</span>
+                                  {message.status === "unread" && (
+                                    <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                                  )}
+                                  <span
+                                    className={`${message.status === "unread" ? "font-semibold" : "font-medium"} truncate text-sm`}
+                                  >
+                                    {message.name}
+                                  </span>
                                 </span>
-                                <span className="mt-1 block truncate text-xs text-muted-foreground">{message.message}</span>
+                                <span className="mt-1 block truncate text-xs text-muted-foreground">
+                                  {message.message}
+                                </span>
                               </span>
-                              <time className="shrink-0 text-[10px] text-muted-foreground" dateTime={message.created_at}>
+                              <time
+                                className="shrink-0 text-[10px] text-muted-foreground"
+                                dateTime={message.created_at}
+                              >
                                 {formatShortDate(message.created_at)}
                               </time>
                             </button>
@@ -430,45 +445,84 @@ function AdminPage() {
                         {selectedMessage ? (
                           <article className="flex h-full min-h-[390px] flex-col">
                             <div className="border-b border-border p-4">
-                              <Button variant="ghost" size="sm" className="mb-3 -ml-2 md:hidden" onClick={() => setSelectedMessageId(null)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mb-3 -ml-2 md:hidden"
+                                onClick={() => setSelectedMessageId(null)}
+                              >
                                 <ArrowLeft /> Inbox
                               </Button>
                               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                                 <div className="min-w-0">
                                   <h3 className="truncate font-semibold">{selectedMessage.name}</h3>
-                                  <a className="truncate text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${selectedMessage.email}`}>
+                                  <a
+                                    className="truncate text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    href={`mailto:${selectedMessage.email}`}
+                                  >
                                     {selectedMessage.email}
                                   </a>
                                 </div>
                                 <StatusBadge status={selectedMessage.status} />
                               </div>
-                              <time className="mt-2 block text-xs text-muted-foreground" dateTime={selectedMessage.created_at}>{formatDate(selectedMessage.created_at)}</time>
+                              <time
+                                className="mt-2 block text-xs text-muted-foreground"
+                                dateTime={selectedMessage.created_at}
+                              >
+                                {formatDate(selectedMessage.created_at)}
+                              </time>
                             </div>
-                            <div className="min-h-32 flex-1 whitespace-pre-wrap break-words p-4 text-sm leading-relaxed">{selectedMessage.message}</div>
+                            <div className="min-h-32 flex-1 whitespace-pre-wrap break-words p-4 text-sm leading-relaxed">
+                              {selectedMessage.message}
+                            </div>
                             <div className="flex flex-wrap gap-2 border-t border-border p-4">
                               {selectedMessage.status === "unread" && (
-                                <Button size="sm" variant="outline" disabled={updatingMessage} onClick={() => setMessageStatus(selectedMessage.id, "read")}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "read")}
+                                >
                                   <CheckCircle2 /> Mark read
                                 </Button>
                               )}
                               {selectedMessage.status !== "archived" && (
-                                <Button size="sm" disabled={updatingMessage} onClick={() => setMessageStatus(selectedMessage.id, "replied")}>
+                                <Button
+                                  size="sm"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "replied")}
+                                >
                                   <Mail /> Mark replied
                                 </Button>
                               )}
                               {selectedMessage.status === "archived" ? (
-                                <Button size="sm" variant="outline" disabled={updatingMessage} onClick={() => setMessageStatus(selectedMessage.id, "unread")}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "unread")}
+                                >
                                   <RotateCcw /> Restore
                                 </Button>
                               ) : (
-                                <Button size="sm" variant="ghost" disabled={updatingMessage} onClick={() => setMessageStatus(selectedMessage.id, "archived")}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "archived")}
+                                >
                                   <Archive /> Archive
                                 </Button>
                               )}
                             </div>
                           </article>
                         ) : (
-                          <EmptyState icon={<Mail />} title="Select a message" description="Choose a message to read and manage it." className="min-h-[390px]" />
+                          <EmptyState
+                            icon={<Mail />}
+                            title="Select a message"
+                            description="Choose a message to read and manage it."
+                            className="min-h-[390px]"
+                          />
                         )}
                       </div>
                     </div>
