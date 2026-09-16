@@ -107,7 +107,10 @@ function AdminPage() {
     retry: false,
   });
 
-  const allMessages = (messagesQ.data?.messages ?? []) as ContactMessage[];
+  const allMessages = useMemo(
+    () => (messagesQ.data?.messages ?? []) as ContactMessage[],
+    [messagesQ.data?.messages],
+  );
   const unreadCount = allMessages.filter((message) => message.status === "unread").length;
   const filteredMessages = useMemo(() => {
     const term = messageSearch.trim().toLowerCase();
