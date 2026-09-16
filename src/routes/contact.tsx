@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Mail, MessageCircle, Instagram } from "lucide-react";
 import { toast } from "sonner";
+import { submitContactMessage } from "@/lib/generators.functions";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -24,18 +26,22 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
+  const sendMessage = useServerFn(submitContactMessage);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    // TODO: wire to email/inbox pipeline once email infra is provisioned.
-    setTimeout(() => {
+    try {
+      await sendMessage({ data: form });
       toast.success("Thanks — we'll be in touch within 1 business day");
       setForm({ name: "", email: "", message: "" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "We could not send your message. Please try again.");
+    } finally {
       setBusy(false);
-    }, 600);
+    }
   }
 
   return (

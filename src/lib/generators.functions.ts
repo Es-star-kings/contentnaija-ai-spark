@@ -825,6 +825,57 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     };
   });
 
+export const getAdminMessages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .select("id, name, email, message, status, created_at, read_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return { messages: data ?? [] };
+  });
+
+const UpdateContactMessageInput = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["unread", "read", "replied", "archived"]),
+});
+
+export const updateContactMessageStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateContactMessageInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const readAt = data.status === "unread" ? null : new Date().toISOString();
+    const { error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .update({ status: data.status, read_at: readAt })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const ContactMessageInput = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120, "Name is too long"),
+  email: z.string().trim().email("Enter a valid email address").max(320, "Email is too long"),
+  message: z.string().trim().min(1, "Message is required").max(5000, "Message is too long"),
+});
+
+export const submitContactMessage = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => ContactMessageInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .insert({ name: data.name, email: data.email, message: data.message, status: "unread" });
+    if (error) throw new Error("We could not send your message. Please try again.");
+    return { ok: true };
+  });
+
 const GrantRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["admin", "user"]), grant: z.boolean() });
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
