@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789526570413,
+      "tag": "0000_restore_contact_messages_inbox",
+      "breakpoints": true
+    }
+  ]
+}

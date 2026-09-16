@@ -42,40 +42,24 @@ async function saveGeneratedContent({
       userId,
     });
 
-    throw new Error(
-      `Generated content could not be saved: ${error.message}`,
-    );
+    throw new Error(`Generated content could not be saved: ${error.message}`);
   }
 
   return data;
 }
 
-
-async function consumeGenerationCredit(
-  supabase: any,
-  userId: string,
-) {
-  const { data, error } = await supabase.rpc(
-    "consume_generation_credit",
-    {
-      _user_id: userId,
-    },
-  );
+async function consumeGenerationCredit(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("consume_generation_credit", {
+    _user_id: userId,
+  });
 
   if (error) {
-    if (
-      error.message.includes("quota_exceeded") ||
-      error.code === "P0001"
-    ) {
-      throw new Error(
-        "Monthly generation limit reached. Upgrade your plan to continue.",
-      );
+    if (error.message.includes("quota_exceeded") || error.code === "P0001") {
+      throw new Error("Monthly generation limit reached. Upgrade your plan to continue.");
     }
 
     console.error("Failed to consume generation credit:", error);
-    throw new Error(
-      `Unable to check generation limit: ${error.message}`,
-    );
+    throw new Error(`Unable to check generation limit: ${error.message}`);
   }
 
   const result = Array.isArray(data) ? data[0] : data;
@@ -87,11 +71,7 @@ async function consumeGenerationCredit(
   };
 }
 
-
-function remainingFrom(
-  used: number,
-  quota: number | null,
-): number | null {
+function remainingFrom(used: number, quota: number | null): number | null {
   if (quota === null || quota < 0) return null;
   return Math.max(0, quota - used);
 }
@@ -106,7 +86,10 @@ function parseJSON<T>(raw: string): T {
   }
 }
 
-async function loadBrand(supabase: any, userId: string): Promise<{ data: any; brandId: string | null }> {
+async function loadBrand(
+  supabase: any,
+  userId: string,
+): Promise<{ data: any; brandId: string | null }> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("business_name, industry, tone, target_audience, brand_color, active_brand_id")
@@ -152,14 +135,15 @@ export const generateCaption = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CaptionInput.parse(input))
   .handler(async ({ data, context }): Promise<CaptionOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const lengthGuide =
-      data.length === "short" ? "1-2 short lines" : data.length === "medium" ? "3-5 lines" : "6-10 lines with rich storytelling";
+      data.length === "short"
+        ? "1-2 short lines"
+        : data.length === "medium"
+          ? "3-5 lines"
+          : "6-10 lines with rich storytelling";
 
     const user = `Write ${data.variations} Instagram caption variations for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Goal: ${data.goal}
@@ -173,20 +157,23 @@ Use tasteful emojis. Avoid clichés. Sound like a real person, not a brand templ
 Return JSON exactly: {"captions":[{"text":"...","hashtags":["#tag1"]}]}`;
 
     const raw = await chatCompletion({
-      messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
       response_format: { type: "json_object" },
     });
     const parsed = parseJSON<CaptionOutput>(raw);
     if (!Array.isArray(parsed.captions)) throw new Error("AI returned an unexpected shape.");
 
-  await saveGeneratedContent({
-    supabase,
-    userId,
-    generatorType: "instagram_caption",
-    brandId,
-    inputs: data,
-    output: parsed,
-  });
+    await saveGeneratedContent({
+      supabase,
+      userId,
+      generatorType: "instagram_caption",
+      brandId,
+      inputs: data,
+      output: parsed,
+    });
     return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
@@ -210,10 +197,7 @@ export const generateWhatsApp = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WhatsAppInput.parse(input))
   .handler(async ({ data, context }): Promise<WhatsAppOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write 3 WhatsApp broadcast messages for a Nigerian ${data.businessType}.
@@ -233,7 +217,10 @@ Rules:
 Return JSON exactly: {"messages":[{"label":"Direct offer","body":"..."}]}`;
 
     const raw = await chatCompletion({
-      messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
       response_format: { type: "json_object" },
     });
     const parsed = parseJSON<WhatsAppOutput>(raw);
@@ -273,10 +260,7 @@ export const generateFlyer = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => FlyerInput.parse(input))
   .handler(async ({ data, context }): Promise<FlyerOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Write flyer copy for a Nigerian ${data.businessType}.
@@ -295,7 +279,10 @@ Return JSON exactly with these fields (concise, punchy, ready to print):
 }`;
 
     const raw = await chatCompletion({
-      messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
       response_format: { type: "json_object" },
     });
     const parsed = parseJSON<FlyerOutput>(raw);
@@ -336,10 +323,7 @@ export const generateCalendar = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CalendarInput.parse(input))
   .handler(async ({ data, context }): Promise<CalendarOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const user = `Build a ${data.days}-day ${data.platform} content calendar for a Nigerian ${data.businessType}.
@@ -353,7 +337,10 @@ Return JSON exactly:
 {"plan":[{"day":1,"date_label":"Mon","theme":"Pillar / theme of the day","posts":[{"time":"9:00 AM","format":"Reel / Carousel / Story","hook":"first-line hook","caption":"full caption draft, 2-4 lines"}]}]}`;
 
     const raw = await chatCompletion({
-      messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }],
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
       response_format: { type: "json_object" },
     });
     const parsed = parseJSON<CalendarOutput>(raw);
@@ -386,10 +373,7 @@ export const generateImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ImageInput.parse(input))
   .handler(async ({ data, context }): Promise<ImageOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
 
     const brandHint = brand?.business_name
@@ -399,10 +383,10 @@ export const generateImage = createServerFn({ method: "POST" })
       data.purpose === "flyer"
         ? "Designed as a poster/flyer with strong focal subject and clean negative space for overlay text. No legible text in the image."
         : data.purpose === "product"
-        ? "Clean product photography style, soft studio lighting, neutral background."
-        : data.purpose === "logo"
-        ? "Minimal flat icon-style mark, centered on a clean background, vector-like."
-        : "Eye-catching social media image, vivid colors, on-trend composition. No text overlays.";
+          ? "Clean product photography style, soft studio lighting, neutral background."
+          : data.purpose === "logo"
+            ? "Minimal flat icon-style mark, centered on a clean background, vector-like."
+            : "Eye-catching social media image, vivid colors, on-trend composition. No text overlays.";
 
     const finalPrompt = `${data.prompt}\n\nStyle: ${data.style}. ${purposeHint} ${brandHint} Tailored for a Nigerian audience — authentic, culturally relevant.`;
 
@@ -457,39 +441,29 @@ export const getDashboardStats = createServerFn({ method: "GET" })
 
     const monthStart = currentMonth.toISOString().slice(0, 10);
 
-    const [
-      { data: subscription },
-      { data: usage },
-      { count: totalCount },
-      recent,
-    ] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("tier, status")
-        .eq("user_id", userId)
-        .maybeSingle(),
+    const [{ data: subscription }, { data: usage }, { count: totalCount }, recent] =
+      await Promise.all([
+        supabase.from("subscriptions").select("tier, status").eq("user_id", userId).maybeSingle(),
 
-      supabase
-        .from("usage_credits")
-        .select("generations_used, tier")
-        .eq("user_id", userId)
-        .eq("period_month", monthStart)
-        .maybeSingle(),
+        supabase
+          .from("usage_credits")
+          .select("generations_used, tier")
+          .eq("user_id", userId)
+          .eq("period_month", monthStart)
+          .maybeSingle(),
 
-      supabase
-        .from("generated_content")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId),
+        supabase
+          .from("generated_content")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId),
 
-      supabase
-        .from("generated_content")
-        .select(
-          "id, generator_type, output, created_at, favorited",
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
+        supabase
+          .from("generated_content")
+          .select("id, generator_type, output, created_at, favorited")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
 
     const activeTier = subscription?.tier ?? "free";
 
@@ -626,8 +600,10 @@ export const listHistory = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const filtered = data.search
-      ? (rows ?? []).filter((r) => JSON.stringify(r.output).toLowerCase().includes(data.search!.toLowerCase()))
-      : rows ?? [];
+      ? (rows ?? []).filter((r) =>
+          JSON.stringify(r.output).toLowerCase().includes(data.search!.toLowerCase()),
+        )
+      : (rows ?? []);
     return filtered;
   });
 
@@ -661,13 +637,14 @@ export const getProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, email, full_name, business_name, industry, tone, target_audience, brand_color, preferred_platform, language, onboarding_complete, active_brand_id")
+      .select(
+        "id, email, full_name, business_name, industry, tone, target_audience, brand_color, preferred_platform, language, onboarding_complete, active_brand_id",
+      )
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   });
-
 
 const ProfileInput = z.object({
   full_name: z.string().max(120).optional().nullable(),
@@ -675,7 +652,11 @@ const ProfileInput = z.object({
   industry: z.string().max(120).optional().nullable(),
   tone: z.string().max(60).optional().nullable(),
   target_audience: z.string().max(200).optional().nullable(),
-  brand_color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional().nullable(),
+  brand_color: z
+    .string()
+    .regex(/^#?[0-9a-fA-F]{6}$/)
+    .optional()
+    .nullable(),
   preferred_platform: z.string().max(60).optional().nullable(),
   language: z.string().max(40).optional().nullable(),
 });
@@ -721,7 +702,11 @@ const BrandInput = z.object({
   industry: z.string().max(120).optional().nullable(),
   tone: z.string().max(60).optional().nullable(),
   target_audience: z.string().max(200).optional().nullable(),
-  brand_color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional().nullable(),
+  brand_color: z
+    .string()
+    .regex(/^#?[0-9a-fA-F]{6}$/)
+    .optional()
+    .nullable(),
 });
 
 export const createBrand = createServerFn({ method: "POST" })
@@ -729,8 +714,13 @@ export const createBrand = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => BrandInput.parse(input))
   .handler(async ({ data, context }) => {
     const patch: any = { ...data, user_id: context.userId };
-    if (patch.brand_color && !patch.brand_color.startsWith("#")) patch.brand_color = "#" + patch.brand_color;
-    const { data: row, error } = await context.supabase.from("brands").insert(patch).select("id").single();
+    if (patch.brand_color && !patch.brand_color.startsWith("#"))
+      patch.brand_color = "#" + patch.brand_color;
+    const { data: row, error } = await context.supabase
+      .from("brands")
+      .insert(patch)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     return { id: row.id };
   });
@@ -741,7 +731,8 @@ export const updateBrand = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => BrandUpdateInput.parse(input))
   .handler(async ({ data, context }) => {
     const { id, ...patch } = data as any;
-    if (patch.brand_color && !patch.brand_color.startsWith("#")) patch.brand_color = "#" + patch.brand_color;
+    if (patch.brand_color && !patch.brand_color.startsWith("#"))
+      patch.brand_color = "#" + patch.brand_color;
     const { error } = await context.supabase.from("brands").update(patch).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -794,21 +785,22 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [{ count: totalContent }, { count: totalBrands }, recentRows, byTypeRows, users] = await Promise.all([
-      supabaseAdmin.from("generated_content").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("brands").select("id", { count: "exact", head: true }),
-      supabaseAdmin
-        .from("generated_content")
-        .select("id, user_id, generator_type, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabaseAdmin.from("generated_content").select("generator_type"),
-      supabaseAdmin
-        .from("profiles")
-        .select("id, email, full_name, business_name, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+    const [{ count: totalContent }, { count: totalBrands }, recentRows, byTypeRows, users] =
+      await Promise.all([
+        supabaseAdmin.from("generated_content").select("id", { count: "exact", head: true }),
+        supabaseAdmin.from("brands").select("id", { count: "exact", head: true }),
+        supabaseAdmin
+          .from("generated_content")
+          .select("id, user_id, generator_type, created_at")
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabaseAdmin.from("generated_content").select("generator_type"),
+        supabaseAdmin
+          .from("profiles")
+          .select("id, email, full_name, business_name, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
 
     const byType: Record<string, number> = {};
     for (const r of byTypeRows.data ?? []) {
@@ -819,13 +811,70 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       totalContent: totalContent ?? 0,
       totalBrands: totalBrands ?? 0,
       totalUsers: users.data?.length ?? 0,
-      byType: Object.entries(byType).map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
+      byType: Object.entries(byType)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count),
       recent: recentRows.data ?? [],
       users: users.data ?? [],
     };
   });
 
-const GrantRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["admin", "user"]), grant: z.boolean() });
+export const getAdminMessages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .select("id, name, email, message, status, created_at, read_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return { messages: data ?? [] };
+  });
+
+const UpdateContactMessageInput = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["unread", "read", "replied", "archived"]),
+});
+
+export const updateContactMessageStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateContactMessageInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const readAt = data.status === "unread" ? null : new Date().toISOString();
+    const { error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .update({ status: data.status, read_at: readAt })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const ContactMessageInput = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120, "Name is too long"),
+  email: z.string().trim().email("Enter a valid email address").max(320, "Email is too long"),
+  message: z.string().trim().min(1, "Message is required").max(5000, "Message is too long"),
+});
+
+export const submitContactMessage = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => ContactMessageInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any)
+      .from("contact_messages")
+      .insert({ name: data.name, email: data.email, message: data.message, status: "unread" });
+    if (error) throw new Error("We could not send your message. Please try again.");
+    return { ok: true };
+  });
+
+const GrantRoleInput = z.object({
+  user_id: z.string().uuid(),
+  role: z.enum(["admin", "user"]),
+  grant: z.boolean(),
+});
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GrantRoleInput.parse(input))
@@ -857,7 +906,11 @@ const OnboardingInput = z.object({
   industry: z.string().trim().min(1).max(120),
   target_audience: z.string().trim().min(1).max(200),
   tone: z.string().trim().min(1).max(60),
-  brand_color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional().nullable(),
+  brand_color: z
+    .string()
+    .regex(/^#?[0-9a-fA-F]{6}$/)
+    .optional()
+    .nullable(),
   preferred_platform: z.string().max(60).optional().nullable(),
   language: z.string().max(40).optional().nullable(),
 });
@@ -867,7 +920,9 @@ export const completeOnboarding = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => OnboardingInput.parse(input))
   .handler(async ({ data, context }) => {
     const brand_color = data.brand_color
-      ? (data.brand_color.startsWith("#") ? data.brand_color : "#" + data.brand_color)
+      ? data.brand_color.startsWith("#")
+        ? data.brand_color
+        : "#" + data.brand_color
       : "#10B981";
 
     // 1. Create the first brand
@@ -947,9 +1002,10 @@ export const createShareLink = createServerFn({ method: "POST" })
       .maybeSingle();
     if (chk) throw new Error(chk.message);
     if (!row) throw new Error("Content not found");
-    const expires_at = data.expiresInDays && data.expiresInDays > 0
-      ? new Date(Date.now() + data.expiresInDays * 86400_000).toISOString()
-      : null;
+    const expires_at =
+      data.expiresInDays && data.expiresInDays > 0
+        ? new Date(Date.now() + data.expiresInDays * 86400_000).toISOString()
+        : null;
     const token = randomToken();
     const { data: inserted, error } = await supabase
       .from("share_links")
@@ -989,11 +1045,9 @@ export const getSharedContent = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GetSharedInput.parse(input))
   .handler(async ({ data }) => {
     const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-    );
+    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
     const { data: link, error } = await sb
       .from("share_links")
       .select("id, content_id, expires_at, user_id, view_count")
@@ -1027,7 +1081,12 @@ export const getSharedContent = createServerFn({ method: "POST" })
       .maybeSingle();
     brand_name = prof?.business_name ?? null;
 
-    return { generator_type: content.generator_type, output: content.output, created_at: content.created_at, brand_name };
+    return {
+      generator_type: content.generator_type,
+      output: content.output,
+      created_at: content.created_at,
+      brand_name,
+    };
   });
 
 // ---------- Scheduling / drafts ----------
@@ -1094,7 +1153,6 @@ export const setContentStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-
 // ============================================================
 // Team / Agency Workspaces
 // ============================================================
@@ -1109,7 +1167,10 @@ export const listWorkspaces = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     if (error) throw new Error(error.message);
     const { data: profile } = await supabase
-      .from("profiles").select("active_workspace_id").eq("id", userId).maybeSingle();
+      .from("profiles")
+      .select("active_workspace_id")
+      .eq("id", userId)
+      .maybeSingle();
     const workspaces = (memberships ?? []).map((m: any) => ({ ...m.workspace, role: m.role }));
     return { workspaces, activeWorkspaceId: (profile as any)?.active_workspace_id ?? null };
   });
@@ -1120,17 +1181,25 @@ export const createWorkspace = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateWorkspaceInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: ws, error } = await supabase.rpc("create_workspace_with_owner" as any, { _name: data.name });
+    const { data: ws, error } = await supabase.rpc("create_workspace_with_owner" as any, {
+      _name: data.name,
+    });
     if (error) throw new Error(error.message);
     return ws as any;
   });
 
-const RenameWorkspaceInput = z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(80) });
+const RenameWorkspaceInput = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(80),
+});
 export const renameWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RenameWorkspaceInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("workspaces").update({ name: data.name } as any).eq("id", data.id);
+    const { error } = await context.supabase
+      .from("workspaces")
+      .update({ name: data.name } as any)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -1172,7 +1241,10 @@ export const listWorkspaceMembers = createServerFn({ method: "POST" })
     const ids = (members ?? []).map((m: any) => m.user_id);
     let profiles: any[] = [];
     if (ids.length) {
-      const { data: p } = await supabase.from("profiles").select("id, email, full_name").in("id", ids);
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", ids);
       profiles = p ?? [];
     }
     const withProfile = (members ?? []).map((m: any) => {
@@ -1197,7 +1269,8 @@ export const inviteToWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => InviteInput.parse(input))
   .handler(async ({ data, context }) => {
-    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const token =
+      crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
     const { data: row, error } = await context.supabase
       .from("workspace_invitations")
       .insert({
@@ -1218,7 +1291,10 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RevokeInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("workspace_invitations").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("workspace_invitations")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -1273,9 +1349,14 @@ export const acceptInvitation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AcceptInviteInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: wsId, error } = await supabase.rpc("accept_workspace_invitation" as any, { _token: data.token });
+    const { data: wsId, error } = await supabase.rpc("accept_workspace_invitation" as any, {
+      _token: data.token,
+    });
     if (error) throw new Error(error.message);
-    await supabase.from("profiles").update({ active_workspace_id: wsId } as any).eq("id", userId);
+    await supabase
+      .from("profiles")
+      .update({ active_workspace_id: wsId } as any)
+      .eq("id", userId);
     return { workspace_id: wsId };
   });
 
@@ -1316,10 +1397,7 @@ export const generateWABroadcast = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WABroadcastInput.parse(input))
   .handler(async ({ data, context }): Promise<WABroadcastOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp broadcast messages for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1331,7 +1409,13 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 Rules: WhatsApp formatting (*bold* with asterisks, short paragraphs, line breaks). Under 600 chars each.
 Angles: (1) Direct offer (2) Story / social proof (3) Urgency / scarcity.
 Return JSON: {"messages":[{"label":"Direct offer","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+    });
     const parsed = parseJSON<WABroadcastOutput>(raw);
     await saveGeneratedContent({
       supabase,
@@ -1348,7 +1432,14 @@ Return JSON: {"messages":[{"label":"Direct offer","body":"..."}]}`;
 const WAStatusInput = z.object({
   businessType: z.string().min(1).max(120),
   topic: z.string().min(1).max(200),
-  category: z.enum(["Promotional", "Educational", "Storytelling", "Behind the Scenes", "Customer Testimonial", "Daily Tip"]),
+  category: z.enum([
+    "Promotional",
+    "Educational",
+    "Storytelling",
+    "Behind the Scenes",
+    "Customer Testimonial",
+    "Daily Tip",
+  ]),
   tone: z.string().min(1).max(60),
   variations: z.number().int().min(1).max(6).default(4),
   includePidgin: z.boolean().default(false),
@@ -1359,10 +1450,7 @@ export const generateWAStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAStatusInput.parse(input))
   .handler(async ({ data, context }): Promise<WAStatusOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write ${data.variations} high-converting WhatsApp Status updates for a Nigerian ${data.businessType}.
 ${brandLine(brand)}Topic: ${data.topic}
@@ -1371,7 +1459,13 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 
 Rules: Under 280 characters each. Punchy hook in first line. Every variation must open differently.
 Return JSON: {"statuses":[{"body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+    });
     const parsed = parseJSON<WAStatusOutput>(raw);
     await saveGeneratedContent({
       supabase,
@@ -1387,7 +1481,15 @@ Return JSON: {"statuses":[{"body":"..."}]}`;
 // Follow-up
 const WAFollowUpInput = z.object({
   businessName: z.string().min(1).max(120),
-  scenario: z.enum(["No reply", "Payment reminder", "Order confirmation", "Delivery update", "Abandoned cart", "Appointment reminder", "Customer feedback request"]),
+  scenario: z.enum([
+    "No reply",
+    "Payment reminder",
+    "Order confirmation",
+    "Delivery update",
+    "Abandoned cart",
+    "Appointment reminder",
+    "Customer feedback request",
+  ]),
   context: z.string().max(300).optional().default(""),
   tone: z.enum(["Friendly", "Professional", "Persuasive"]).default("Friendly"),
 });
@@ -1397,10 +1499,7 @@ export const generateWAFollowUp = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAFollowUpInput.parse(input))
   .handler(async ({ data, context }): Promise<WAFollowUpOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 WhatsApp follow-up messages from ${data.businessName}.
 ${brandLine(brand)}Scenario: ${data.scenario}
@@ -1410,7 +1509,13 @@ ${WA_TONE_GUIDE(data.tone)}
 Rules: Under 500 chars. Sound human, respectful — not pushy. Give a next step.
 Vary the openers across variations (do NOT all start with "Hi" or "Hello").
 Return JSON: {"messages":[{"label":"Soft nudge","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+    });
     const parsed = parseJSON<WAFollowUpOutput>(raw);
     await saveGeneratedContent({
       supabase,
@@ -1427,7 +1532,15 @@ Return JSON: {"messages":[{"label":"Soft nudge","body":"..."}]}`;
 const WAPromoInput = z.object({
   businessName: z.string().min(1).max(120),
   product: z.string().min(1).max(160),
-  promoType: z.enum(["Product Launch", "Flash Sale", "Discount", "Clearance Sale", "New Arrival", "Referral Program", "Giveaway"]),
+  promoType: z.enum([
+    "Product Launch",
+    "Flash Sale",
+    "Discount",
+    "Clearance Sale",
+    "New Arrival",
+    "Referral Program",
+    "Giveaway",
+  ]),
   offer: z.string().max(200).optional().default(""),
   tone: z.string().min(1).max(60),
   includePidgin: z.boolean().default(false),
@@ -1438,10 +1551,7 @@ export const generateWAPromo = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAPromoInput.parse(input))
   .handler(async ({ data, context }): Promise<WAPromoOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Write 3 promotional WhatsApp marketing messages for ${data.businessName}.
 ${brandLine(brand)}Promo type: ${data.promoType}
@@ -1452,7 +1562,13 @@ ${WA_TONE_GUIDE(data.tone, data.includePidgin)}
 Rules: WhatsApp formatting (*bold*). Include emojis. Under 550 chars each.
 Angles: (1) Excitement/launch hype (2) Value/savings-focused (3) Scarcity/deadline.
 Return JSON: {"messages":[{"label":"Hype","body":"..."}]}`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+    });
     const parsed = parseJSON<WAPromoOutput>(raw);
     await saveGeneratedContent({
       supabase,
@@ -1470,10 +1586,21 @@ const WAHolidayInput = z.object({
   businessName: z.string().min(1).max(120),
   product: z.string().min(1).max(200),
   holiday: z.enum([
-    "Christmas", "New Year", "Easter", "Eid al-Fitr", "Eid al-Adha",
-    "Black Friday", "Cyber Monday", "Valentine's Day", "Mother's Day",
-    "Father's Day", "Children's Day", "Nigerian Independence Day",
-    "Democracy Day", "Back to School", "End of Month Sales",
+    "Christmas",
+    "New Year",
+    "Easter",
+    "Eid al-Fitr",
+    "Eid al-Adha",
+    "Black Friday",
+    "Cyber Monday",
+    "Valentine's Day",
+    "Mother's Day",
+    "Father's Day",
+    "Children's Day",
+    "Nigerian Independence Day",
+    "Democracy Day",
+    "Back to School",
+    "End of Month Sales",
   ]),
   offer: z.string().max(200).optional().default(""),
   tone: z.string().min(1).max(60),
@@ -1492,10 +1619,7 @@ export const generateWAHoliday = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => WAHolidayInput.parse(input))
   .handler(async ({ data, context }): Promise<WAHolidayOutput & { remaining: number | null }> => {
     const { supabase, userId } = context;
-    const { used, quota } = await consumeGenerationCredit(
-      supabase,
-      userId,
-    );
+    const { used, quota } = await consumeGenerationCredit(supabase, userId);
     const { data: brand, brandId } = await loadBrand(supabase, userId);
     const user = `Create a complete ${data.holiday} marketing campaign for ${data.businessName}.
 ${brandLine(brand)}Product/Service: ${data.product}
@@ -1513,7 +1637,13 @@ Return JSON exactly:
   "hashtags": ["#tag1","#tag2"]
 }
 Include 8-12 highly relevant hashtags mixing Nigerian and niche tags.`;
-    const raw = await chatCompletion({ messages: [{ role: "system", content: SYSTEM_BASE }, { role: "user", content: user }], response_format: { type: "json_object" } });
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: SYSTEM_BASE },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+    });
     const parsed = parseJSON<WAHolidayOutput>(raw);
     await saveGeneratedContent({
       supabase,
@@ -1526,8 +1656,7 @@ Include 8-12 highly relevant hashtags mixing Nigerian and niche tags.`;
     return { ...parsed, remaining: remainingFrom(used, quota) };
   });
 
-
-  // ---------- Paystack subscriptions ----------
+// ---------- Paystack subscriptions ----------
 
 const PaystackInitializeInput = z.object({
   tier: z.enum(["pro", "agency"]),
@@ -1592,18 +1721,16 @@ export const initializePaystackPayment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Create the local pending transaction BEFORE talking to Paystack.
-    const { error: txError } = await supabaseAdmin
-      .from("payment_transactions")
-      .insert({
-        user_id: userId,
-        reference,
-        tier: data.tier,
-        billing_cycle: data.billingCycle,
-        amount_kobo: amount,
-        currency: "NGN",
-        status: "pending",
-        metadata: { plan_name: plan.name, email },
-      });
+    const { error: txError } = await supabaseAdmin.from("payment_transactions").insert({
+      user_id: userId,
+      reference,
+      tier: data.tier,
+      billing_cycle: data.billingCycle,
+      amount_kobo: amount,
+      currency: "NGN",
+      status: "pending",
+      metadata: { plan_name: plan.name, email },
+    });
 
     if (txError) {
       console.error("Failed to create payment transaction:", txError);
@@ -1730,15 +1857,22 @@ export const verifyPaystackPayment = createServerFn({ method: "POST" })
     const fail = async (reason: string, userMessage: string) => {
       await supabaseAdmin
         .from("payment_transactions")
-        .update({ status: "failed", failure_reason: reason, processed_at: new Date().toISOString() })
+        .update({
+          status: "failed",
+          failure_reason: reason,
+          processed_at: new Date().toISOString(),
+        })
         .eq("id", localTx.id);
       throw new Error(userMessage);
     };
 
     if (!transaction) await fail("no_transaction", "Payment was not completed.");
-    if (transaction.status !== "success") await fail("not_successful", "Payment was not successful.");
-    if (transaction.reference !== reference) await fail("reference_mismatch", "Payment could not be matched.");
-    if ((transaction.currency || "").toUpperCase() !== "NGN") await fail("currency_mismatch", "Payment currency is not supported.");
+    if (transaction.status !== "success")
+      await fail("not_successful", "Payment was not successful.");
+    if (transaction.reference !== reference)
+      await fail("reference_mismatch", "Payment could not be matched.");
+    if ((transaction.currency || "").toUpperCase() !== "NGN")
+      await fail("currency_mismatch", "Payment currency is not supported.");
     if (Number(transaction.amount) !== Number(localTx.amount_kobo)) {
       await fail("amount_mismatch", "The payment amount did not match the selected plan.");
     }

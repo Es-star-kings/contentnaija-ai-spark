@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAdminOverview, getMyRoles, setUserRole } from "@/lib/generators.functions";
+import {
+  getAdminMessages,
+  getAdminOverview,
+  getMyRoles,
+  setUserRole,
+  updateContactMessageStatus,
+} from "@/lib/generators.functions";
 import {
   Activity,
   AlertCircle,
+  Archive,
+  ArrowLeft,
   BarChart3,
   Building2,
   CheckCircle2,
@@ -19,6 +27,7 @@ import {
   Loader2,
   Mail,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   UserMinus,
@@ -59,11 +68,28 @@ type RecentGeneration = {
   created_at: string;
 };
 
+type ContactMessageStatus = "unread" | "read" | "replied" | "archived";
+
+type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: ContactMessageStatus;
+  created_at: string;
+  read_at: string | null;
+};
+
 function AdminPage() {
   const roles = useServerFn(getMyRoles);
   const overview = useServerFn(getAdminOverview);
+  const messages = useServerFn(getAdminMessages);
+  const updateMessageStatus = useServerFn(updateContactMessageStatus);
   const grant = useServerFn(setUserRole);
   const [userSearch, setUserSearch] = useState("");
+  const [messageSearch, setMessageSearch] = useState("");
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [updatingMessage, setUpdatingMessage] = useState(false);
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
 
   const rolesQ = useQuery({ queryKey: ["my-roles"], queryFn: () => roles(), retry: false });
@@ -74,6 +100,30 @@ function AdminPage() {
     enabled: isAdmin,
     retry: false,
   });
+  const messagesQ = useQuery({
+    queryKey: ["admin-messages"],
+    queryFn: () => messages(),
+    enabled: isAdmin,
+    retry: false,
+  });
+
+  const allMessages = useMemo(
+    () => (messagesQ.data?.messages ?? []) as ContactMessage[],
+    [messagesQ.data?.messages],
+  );
+  const unreadCount = allMessages.filter((message) => message.status === "unread").length;
+  const filteredMessages = useMemo(() => {
+    const term = messageSearch.trim().toLowerCase();
+    if (!term) return allMessages;
+    return allMessages.filter((message) =>
+      [message.name, message.email, message.message].some((value) =>
+        value.toLowerCase().includes(term),
+      ),
+    );
+  }, [allMessages, messageSearch]);
+  const selectedMessage =
+    filteredMessages.find((message) => message.id === selectedMessageId) ??
+    (!selectedMessageId ? filteredMessages[0] : undefined);
 
   const filteredUsers = useMemo(() => {
     const term = userSearch.trim().toLowerCase();
@@ -126,6 +176,32 @@ function AdminPage() {
     }
   }
 
+  async function setMessageStatus(id: string, status: ContactMessageStatus) {
+    setUpdatingMessage(true);
+    try {
+      await updateMessageStatus({ data: { id, status } });
+      await messagesQ.refetch();
+      toast.success(
+        status === "unread"
+          ? "Message restored"
+          : status === "read"
+            ? "Message marked as read"
+            : status === "replied"
+              ? "Message marked as replied"
+              : "Message archived",
+      );
+      if (status === "archived") setSelectedMessageId(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The message could not be updated");
+    } finally {
+      setUpdatingMessage(false);
+    }
+  }
+
+  async function refreshAdmin() {
+    await Promise.all([dataQ.refetch(), messagesQ.refetch()]);
+  }
+
   const d = dataQ.data;
   const byType = d?.byType ?? [];
   const largestTypeCount = Math.max(...byType.map((item) => item.count), 1);
@@ -155,11 +231,11 @@ function AdminPage() {
             variant="outline"
             size="sm"
             className="shrink-0"
-            onClick={() => dataQ.refetch()}
-            disabled={dataQ.isFetching}
+            onClick={refreshAdmin}
+            disabled={dataQ.isFetching || messagesQ.isFetching}
             aria-label="Refresh admin data"
           >
-            <RefreshCw className={dataQ.isFetching ? "animate-spin" : ""} />
+            <RefreshCw className={dataQ.isFetching || messagesQ.isFetching ? "animate-spin" : ""} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
         </header>
@@ -209,9 +285,8 @@ function AdminPage() {
               <MetricCard
                 icon={Mail}
                 label="Unread messages"
-                value="—"
-                detail="Inbox not connected"
-                muted
+                value={messagesQ.isLoading ? "…" : unreadCount}
+                detail={messagesQ.isError ? "Inbox needs attention" : "Awaiting review"}
               />
             </section>
 
@@ -268,7 +343,7 @@ function AdminPage() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-card">
+              <Card className="overflow-hidden shadow-card">
                 <CardHeader className="border-b border-border pb-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -283,10 +358,11 @@ function AdminPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      disabled
+                      onClick={() => messagesQ.refetch()}
+                      disabled={messagesQ.isFetching}
                       aria-label="Refresh contact messages"
                     >
-                      <RefreshCw />
+                      <RefreshCw className={messagesQ.isFetching ? "animate-spin" : ""} />
                     </Button>
                   </div>
                   <div className="relative mt-3">
@@ -294,18 +370,166 @@ function AdminPage() {
                     <Input
                       className="pl-9"
                       placeholder="Search messages"
-                      disabled
+                      value={messageSearch}
+                      onChange={(event) => setMessageSearch(event.target.value)}
                       aria-label="Search contact messages"
                     />
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <EmptyState
-                    icon={<Inbox />}
-                    title="Inbox data isn't connected"
-                    description="No message source is available in this project version."
-                    className="min-h-64 px-6"
-                  />
+                  {messagesQ.isLoading ? (
+                    <div className="space-y-3 p-4" aria-label="Loading contact messages">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <Skeleton key={index} className="h-20" />
+                      ))}
+                    </div>
+                  ) : messagesQ.isError ? (
+                    <div className="flex min-h-64 flex-col items-center justify-center gap-3 px-6 text-center">
+                      <AlertCircle className="h-7 w-7 text-destructive" />
+                      <div>
+                        <p className="text-sm font-medium">Messages could not be loaded</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Refresh to try again.</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => messagesQ.refetch()}>
+                        <RefreshCw /> Retry
+                      </Button>
+                    </div>
+                  ) : filteredMessages.length === 0 ? (
+                    <EmptyState
+                      icon={<Inbox />}
+                      title={messageSearch ? "No messages found" : "Inbox is clear"}
+                      description={
+                        messageSearch
+                          ? "Try a different search."
+                          : "New contact messages will appear here."
+                      }
+                      className="min-h-64 px-6"
+                    />
+                  ) : (
+                    <div className="grid min-h-[390px] md:grid-cols-[minmax(220px,.85fr)_minmax(0,1.15fr)]">
+                      <div
+                        className={`${selectedMessageId ? "hidden md:block" : "block"} max-h-[440px] overflow-y-auto border-r-0 border-border md:border-r`}
+                      >
+                        <div className="divide-y divide-border">
+                          {filteredMessages.map((message) => (
+                            <button
+                              key={message.id}
+                              type="button"
+                              onClick={() => setSelectedMessageId(message.id)}
+                              className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selectedMessage?.id === message.id ? "bg-primary/5" : "hover:bg-muted/50"}`}
+                            >
+                              <span className="min-w-0">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  {message.status === "unread" && (
+                                    <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                                  )}
+                                  <span
+                                    className={`${message.status === "unread" ? "font-semibold" : "font-medium"} truncate text-sm`}
+                                  >
+                                    {message.name}
+                                  </span>
+                                </span>
+                                <span className="mt-1 block truncate text-xs text-muted-foreground">
+                                  {message.message}
+                                </span>
+                              </span>
+                              <time
+                                className="shrink-0 text-[10px] text-muted-foreground"
+                                dateTime={message.created_at}
+                              >
+                                {formatShortDate(message.created_at)}
+                              </time>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className={`${selectedMessageId ? "block" : "hidden md:block"} min-w-0`}>
+                        {selectedMessage ? (
+                          <article className="flex h-full min-h-[390px] flex-col">
+                            <div className="border-b border-border p-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mb-3 -ml-2 md:hidden"
+                                onClick={() => setSelectedMessageId(null)}
+                              >
+                                <ArrowLeft /> Inbox
+                              </Button>
+                              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                                <div className="min-w-0">
+                                  <h3 className="truncate font-semibold">{selectedMessage.name}</h3>
+                                  <a
+                                    className="truncate text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    href={`mailto:${selectedMessage.email}`}
+                                  >
+                                    {selectedMessage.email}
+                                  </a>
+                                </div>
+                                <StatusBadge status={selectedMessage.status} />
+                              </div>
+                              <time
+                                className="mt-2 block text-xs text-muted-foreground"
+                                dateTime={selectedMessage.created_at}
+                              >
+                                {formatDate(selectedMessage.created_at)}
+                              </time>
+                            </div>
+                            <div className="min-h-32 flex-1 whitespace-pre-wrap break-words p-4 text-sm leading-relaxed">
+                              {selectedMessage.message}
+                            </div>
+                            <div className="flex flex-wrap gap-2 border-t border-border p-4">
+                              {selectedMessage.status === "unread" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "read")}
+                                >
+                                  <CheckCircle2 /> Mark read
+                                </Button>
+                              )}
+                              {selectedMessage.status !== "archived" && (
+                                <Button
+                                  size="sm"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "replied")}
+                                >
+                                  <Mail /> Mark replied
+                                </Button>
+                              )}
+                              {selectedMessage.status === "archived" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "unread")}
+                                >
+                                  <RotateCcw /> Restore
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={updatingMessage}
+                                  onClick={() => setMessageStatus(selectedMessage.id, "archived")}
+                                >
+                                  <Archive /> Archive
+                                </Button>
+                              )}
+                            </div>
+                          </article>
+                        ) : (
+                          <EmptyState
+                            icon={<Mail />}
+                            title="Select a message"
+                            description="Choose a message to read and manage it."
+                            className="min-h-[390px]"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </section>
@@ -574,6 +798,24 @@ function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown time";
   return new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short" }).format(date);
+}
+
+function StatusBadge({ status }: { status: ContactMessageStatus }) {
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  return (
+    <Badge
+      variant={status === "unread" ? "default" : status === "archived" ? "outline" : "secondary"}
+      className="shrink-0"
+    >
+      {label}
+    </Badge>
+  );
 }
 
 function userInitials(user: AdminUser) {
