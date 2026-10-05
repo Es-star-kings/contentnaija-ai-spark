@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users, Menu, MessageCircle } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, History, Settings as SettingsIcon, LogOut, BarChart3, Building2, Shield, CalendarDays, Users, Menu, MessageCircle, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -29,6 +29,7 @@ const baseNav = [
   { to: "/team", label: "Team", icon: Users },
   { to: "/history", label: "History", icon: History },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/profile", label: "Profile", icon: UserRound },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
