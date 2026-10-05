@@ -92,18 +92,28 @@ async function loadBrand(
 ): Promise<{ data: any; brandId: string | null }> {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("business_name, industry, tone, target_audience, brand_color, active_brand_id")
+    .select(
+      "business_name, industry, tone, target_audience, brand_color, preferred_platform, language, active_brand_id",
+    )
     .eq("id", userId)
     .maybeSingle();
+  const base = profile ?? {};
   if (profile?.active_brand_id) {
     const { data: brand } = await supabase
       .from("brands")
       .select("id, business_name, industry, tone, target_audience, brand_color")
       .eq("id", profile.active_brand_id)
       .maybeSingle();
-    if (brand) return { data: brand, brandId: brand.id };
+    if (brand) {
+      // Active brand fields win; empty brand fields fall back to the user's profile.
+      const merged: Record<string, unknown> = { ...base };
+      for (const [k, v] of Object.entries(brand)) {
+        if (v !== null && v !== "") merged[k] = v;
+      }
+      return { data: merged, brandId: brand.id };
+    }
   }
-  return { data: profile ?? {}, brandId: null };
+  return { data: base, brandId: null };
 }
 
 function brandLine(brand: any) {
@@ -112,6 +122,9 @@ function brandLine(brand: any) {
   if (brand.industry) parts.push(`Industry: ${brand.industry}`);
   if (brand.target_audience) parts.push(`Audience: ${brand.target_audience}`);
   if (brand.tone) parts.push(`Brand tone: ${brand.tone}`);
+  if (brand.preferred_platform) parts.push(`Main platform: ${brand.preferred_platform}`);
+  if (brand.language && brand.language !== "English")
+    parts.push(`Preferred language style: ${brand.language} (blend naturally unless the request specifies otherwise)`);
   return parts.length ? `\nBrand context — ${parts.join(" • ")}\n` : "";
 }
 
@@ -647,18 +660,18 @@ export const getProfile = createServerFn({ method: "GET" })
   });
 
 const ProfileInput = z.object({
-  full_name: z.string().max(120).optional().nullable(),
-  business_name: z.string().max(120).optional().nullable(),
-  industry: z.string().max(120).optional().nullable(),
-  tone: z.string().max(60).optional().nullable(),
-  target_audience: z.string().max(200).optional().nullable(),
+  full_name: z.string().trim().max(120).optional().nullable(),
+  business_name: z.string().trim().max(120).optional().nullable(),
+  industry: z.string().trim().max(120).optional().nullable(),
+  tone: z.string().trim().max(60).optional().nullable(),
+  target_audience: z.string().trim().max(200).optional().nullable(),
   brand_color: z
     .string()
     .regex(/^#?[0-9a-fA-F]{6}$/)
     .optional()
     .nullable(),
-  preferred_platform: z.string().max(60).optional().nullable(),
-  language: z.string().max(40).optional().nullable(),
+  preferred_platform: z.string().trim().max(60).optional().nullable(),
+  language: z.string().trim().max(40).optional().nullable(),
 });
 
 export const updateProfile = createServerFn({ method: "POST" })
